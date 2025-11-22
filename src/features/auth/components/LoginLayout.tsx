@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import Image from 'next/image';
 
 interface LoginLayoutProps {
   children: ReactNode;
@@ -21,7 +22,14 @@ export function LoginLayout({ children }: LoginLayoutProps) {
 
         {/* Logo */}
         <div className="absolute top-10 left-10 z-10">
-          <div className="text-2xl font-bold text-white">FlowTrack</div>
+          <Image
+            src="/logo.png"
+            alt="FlowTrack"
+            width={200}
+            height={60}
+            className="h-auto"
+            priority
+          />
         </div>
 
         {/* Hero Content - Centered */}
@@ -106,9 +114,14 @@ export function LoginLayout({ children }: LoginLayoutProps) {
       {/* Mobile/Tablet Brand Header */}
       {/* Mobile: 80px height, Tablet: 200px height */}
       <div className="flex h-20 w-full items-center justify-center bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] px-6 md:h-[200px] md:px-8 lg:hidden">
-        <div className="text-xl font-bold text-white md:text-2xl">
-          FlowTrack
-        </div>
+        <Image
+          src="/logo.png"
+          alt="FlowTrack"
+          width={160}
+          height={45}
+          className="h-auto md:h-[60px] md:w-[200px]"
+          priority
+        />
       </div>
 
       {/* Form Panel - Right (60% on desktop, full width on mobile/tablet) */}

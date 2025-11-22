@@ -13,6 +13,16 @@ export const mainUrl = {
   resetPassword: '/api/v1/auth/reset-password',
   forgotPassword: '/api/v1/auth/forgot-password',
 
-  // Add more endpoints as needed
-  // Example: users: '/api/v1/users',
+  // Onboarding endpoints
+  onboardingStrategy: '/api/v1/onboarding/strategy',
+  onboardingFormFields: '/api/v1/onboarding/form-fields',
+  onboardingFormFieldsGet: '/api/v1/onboarding/form-fields',
+  onboardingConfigure: '/api/v1/onboarding/configure',
+  onboardingOAuthGmail: '/api/v1/auth/oauth/gmail',
+  onboardingOAuthOutlook: '/api/v1/auth/oauth/outlook',
+  onboardingOAuthComplete: '/api/v1/onboarding/oauth-complete',
+  onboardingSimulate: '/api/v1/onboarding/simulate',
+  onboardingStatus: '/api/v1/onboarding/status',
+  workflowActivate: '/api/v1/workflows/activate',
+  updateUser: '/api/v1/users/me',
 };

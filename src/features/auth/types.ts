@@ -13,6 +13,7 @@ export type User = {
   authProvider: AuthProvider;
   emailVerifiedAt?: string | null;
   clerkUserId?: string | null;
+  hasCompletedOnboarding?: boolean;
   createdAt: string;
   updatedAt?: string;
 };

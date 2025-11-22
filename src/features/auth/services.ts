@@ -3,7 +3,6 @@ import { mainUrl } from '@/url/url';
 import type {
   LoginResponse,
   RegisterResponse,
-  RefreshTokenResponse,
   VerifyEmailResponse,
   ResendVerificationResponse,
   ForgotPasswordResponse,
@@ -47,14 +46,6 @@ export type ForgotPasswordData = {
   email: string;
 };
 
-export type RefreshTokenData = {
-  refreshToken: string;
-};
-
-export type LogoutData = {
-  refreshToken: string;
-};
-
 // ============= Auth Services =============
 
 export async function signIn(data: SignInData): Promise<LoginResponse> {
@@ -87,18 +78,8 @@ export async function googleSignUp(
   return response.data;
 }
 
-export async function refreshToken(
-  data: RefreshTokenData
-): Promise<RefreshTokenResponse> {
-  const response = await request.post<RefreshTokenResponse>(
-    mainUrl.refreshToken,
-    data
-  );
-  return response.data;
-}
-
-export async function logout(data: LogoutData): Promise<LogoutResponse> {
-  const response = await request.post<LogoutResponse>(mainUrl.logout, data);
+export async function logout(): Promise<LogoutResponse> {
+  const response = await request.post<LogoutResponse>(mainUrl.logout);
   return response.data;
 }
 

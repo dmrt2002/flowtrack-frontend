@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/store/currentUserStore';
+import { clearAuthCookies } from '@/lib/cookies';
 import { logoutAll } from '../services';
 
 /**
@@ -17,6 +18,7 @@ export function useLogoutAllMutation() {
     retry: false,
     onSuccess: () => {
       clearUser();
+      clearAuthCookies();
       toast.success('Logged out from all devices successfully');
       router.push('/login');
     },

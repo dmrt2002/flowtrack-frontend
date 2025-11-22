@@ -6,22 +6,24 @@ import { signIn, SignInData } from '../services';
 
 export function useSignInMutation() {
   const router = useRouter();
-  const { setUser, setTokens } = useCurrentUser();
+  const { setUser } = useCurrentUser();
 
   return useMutation({
     mutationFn: (data: SignInData) => signIn(data),
     retry: false,
     onSuccess: (data) => {
-      // Update global user store
+      // Update global user store (backend already set the cookie)
       setUser(data.user);
-      setTokens({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        expiresAt: data.expiresAt,
-      });
 
       toast.success('Sign in successful!');
-      router.push('/dashboard-home');
+
+      // Redirect based on onboarding status
+      const hasCompletedOnboarding = data.user.hasCompletedOnboarding ?? false;
+      if (hasCompletedOnboarding) {
+        router.push('/dashboard-home');
+      } else {
+        router.push('/onboarding/strategy');
+      }
     },
     onError: (error: any) => {
       const errorMessage = error?.response?.data?.message || 'Sign in failed';
