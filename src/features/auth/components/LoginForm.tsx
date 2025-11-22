@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,16 +134,12 @@ export function LoginForm() {
 
         {/* Forgot Password Link */}
         <div className="mt-3 flex justify-end">
-          <a
-            href="#"
-            className="text-sm font-medium text-[#4F46E5] transition-colors hover:text-[#4338CA] hover:underline disabled:pointer-events-none disabled:opacity-50"
-            onClick={(e) => {
-              e.preventDefault();
-              // TODO: Implement forgot password flow
-            }}
+          <Link
+            href="/forgot-password"
+            className="text-sm font-medium text-[#4F46E5] transition-colors hover:text-[#4338CA] hover:underline"
           >
             Forgot password?
-          </a>
+          </Link>
         </div>
 
         {/* Submit Button */}
@@ -183,16 +180,12 @@ export function LoginForm() {
         {/* Alternate Action */}
         <div className="mt-6 text-center text-sm text-[#6B7280]">
           Don&apos;t have an account?{' '}
-          <a
-            href="#"
+          <Link
+            href="/signup"
             className="ml-1 font-medium text-[#4F46E5] hover:text-[#4338CA] hover:underline"
-            onClick={(e) => {
-              e.preventDefault();
-              // TODO: Navigate to sign up page
-            }}
           >
             Sign up
-          </a>
+          </Link>
         </div>
       </form>
     </div>
