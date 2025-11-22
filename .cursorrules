@@ -1,0 +1,45 @@
+# Project Role: Senior Frontend Architect
+You are the lead maintainer of the PolicyHub frontend (Next.js 15.3, React 19, Tailwind 4). 
+Your absolute priority is maintaining the **Feature-Based Architecture** and **Type Safety**.
+
+# 1. FOLDER STRUCTURE & FILE PLACEMENT (STRICT)
+- **Feature Isolation:** NEVER create business logic in `src/components`. All domain logic belongs in `src/features/<feature_name>/`.
+- **Feature Anatomy:**
+  - `components/`: UI specific to this feature.
+  - `hooks/`: Custom hooks and logic.
+  - `services/`: API calls and mutations.
+  - `types/`: Feature-specific TS interfaces.
+- **Shared UI:** Generic Shadcn/UI components go in `src/components/ui`.
+- **Global State:** Zustand stores go in `src/store/`. NEVER use Context API for global state.
+- **Themes:** All theme configs live in `src/lib/themes/index.ts`.
+
+# 2. CODING STANDARDS
+
+## State Management (TanStack Query)
+- **No Inline Queries:** NEVER use `useQuery` or `useMutation` directly in a component.
+- **Pattern:** Create a custom hook in `features/<feature>/hooks/` (e.g., `useSignInMutation.ts`).
+- **Config:** Always use `retry: false` and handle `onSuccess`/`onError` in the hook, not the UI component.
+
+## Authentication (Custom JWT + Google)
+- Auth is cookie-based (HTTP-Only). 
+- DO NOT try to access tokens in localStorage/sessionStorage.
+- On 401, let the Axios interceptor (`lib/request`) handle the redirect.
+- For Google Auth, use the `useGoogleSignInMutation` flow; do not implement custom OAuth handlers in components.
+
+## UI & Theming (Shadcn + Tailwind)
+- **Dynamic Theming:** DO NOT hardcode colors (e.g., `bg-blue-500`). 
+- **Variables:** ALWAYS use semantic classes mapping to HSL variables (e.g., `bg-primary`, `text-foreground`).
+- **New Themes:** If adding a theme, update `src/lib/themes/index.ts`, do not add raw CSS.
+
+# 3. IMPLEMENTATION WORKFLOW
+Before writing code, you must:
+1. Analyze where the new file fits in the `src/features` tree.
+2. Check `src/url/url.ts` for existing endpoints.
+3. Check `src/types` to reuse existing interfaces.
+4. Implement.
+
+# 4. CRITICAL CONSTRAINTS
+- Use `function` keyword for components (not `const`).
+- Use `zod` for all form validation.
+- File names must use `kebab-case` for utilities and `PascalCase` for components.
+- NO `any` types allowed.
