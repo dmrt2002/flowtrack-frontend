@@ -1,26 +1,31 @@
 import { create } from 'zustand';
+import type { User } from '@/features/auth/types';
 
-export type Roles = 'ADMIN' | 'USER' | 'MANAGER';
+/**
+ * Global user store using Zustand
+ * Stores current authenticated user data
+ */
 
-type CurrentUser = {
-  id: string;
-  employeeNo: string;
-  name: string;
-  email: string;
-  role: Roles;
+type TokenData = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
 };
 
 type CurrentUserStore = {
-  currentUser: CurrentUser | null;
+  currentUser: User | null;
+  tokens: TokenData | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setUser: (userData: CurrentUser) => void;
+  setUser: (userData: User) => void;
+  setTokens: (tokenData: TokenData) => void;
   clearUser: () => void;
   setLoading: (loading: boolean) => void;
 };
 
 export const useCurrentUser = create<CurrentUserStore>((set) => ({
   currentUser: null,
+  tokens: null,
   isAuthenticated: false,
   isLoading: true,
   setUser: (userData) =>
@@ -29,9 +34,14 @@ export const useCurrentUser = create<CurrentUserStore>((set) => ({
       isAuthenticated: true,
       isLoading: false,
     }),
+  setTokens: (tokenData) =>
+    set({
+      tokens: tokenData,
+    }),
   clearUser: () =>
     set({
       currentUser: null,
+      tokens: null,
       isAuthenticated: false,
       isLoading: false,
     }),

@@ -52,7 +52,7 @@ cp .env.local.example .env.local
 4. Update `.env.local` with your backend URL:
 
 ```env
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
 ```
 
 ### Development

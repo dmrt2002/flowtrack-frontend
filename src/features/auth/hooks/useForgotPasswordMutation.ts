@@ -5,8 +5,10 @@ import { forgotPassword, ForgotPasswordData } from '../services';
 export function useForgotPasswordMutation() {
   return useMutation({
     mutationFn: (data: ForgotPasswordData) => forgotPassword(data),
+    retry: false,
     onSuccess: () => {
       // Don't show toast - always show success screen for security
+      // Backend always returns 200 OK to prevent email enumeration
     },
     onError: (error: any) => {
       if (error?.response?.status === 429) {

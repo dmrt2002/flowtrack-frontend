@@ -5,6 +5,7 @@ import { resendVerification, ResendVerificationData } from '../services';
 export function useResendVerificationMutation() {
   return useMutation({
     mutationFn: (data: ResendVerificationData) => resendVerification(data),
+    retry: false,
     onSuccess: () => {
       toast.success('Verification email sent! Check your inbox.');
     },

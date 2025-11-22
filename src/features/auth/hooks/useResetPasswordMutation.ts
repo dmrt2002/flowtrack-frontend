@@ -5,8 +5,11 @@ import { resetPassword, ResetPasswordData } from '../services';
 export function useResetPasswordMutation() {
   return useMutation({
     mutationFn: (data: ResetPasswordData) => resetPassword(data),
+    retry: false,
     onSuccess: () => {
       toast.success('Password reset successful!');
+      // Note: All refresh tokens are revoked on backend
+      // User will need to sign in with new password
     },
     onError: (error: any) => {
       const statusCode = error?.response?.status;

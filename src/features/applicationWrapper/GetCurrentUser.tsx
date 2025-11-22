@@ -22,7 +22,7 @@ export function GetCurrentUser() {
         if (axiosError.code === 'ERR_NETWORK' || !axiosError.response) {
           console.warn(
             '⚠️ Backend server is not reachable. Please ensure the backend is running at:',
-            process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+            process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'
           );
           clearUser();
           return;

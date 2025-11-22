@@ -39,6 +39,7 @@ const passwordRequirements: PasswordRequirement[] = [
 export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -55,9 +56,6 @@ export function SignUpForm() {
   useEffect(() => {
     setPassword(watchedPassword);
   }, [watchedPassword]);
-
-  const [showVerificationNotice, setShowVerificationNotice] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
 
   const onSubmit = (data: SignUpFormData) => {
     // Only submit if all password requirements are met
@@ -78,8 +76,8 @@ export function SignUpForm() {
 
     signUpMutation.mutate(submitData, {
       onSuccess: () => {
-        setUserEmail(data.email);
-        setShowVerificationNotice(true);
+        // Show email verification notice
+        setRegisteredEmail(data.email);
       },
     });
   };
@@ -89,9 +87,9 @@ export function SignUpForm() {
     req.test(password)
   );
 
-  // Show verification notice after successful signup
-  if (showVerificationNotice && userEmail) {
-    return <EmailVerificationNotice email={userEmail} />;
+  // If signup was successful, show verification notice
+  if (registeredEmail) {
+    return <EmailVerificationNotice email={registeredEmail} />;
   }
 
   return (

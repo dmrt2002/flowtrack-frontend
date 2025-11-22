@@ -5,8 +5,11 @@ import { signUp, SignUpData } from '../services';
 export function useSignUpMutation() {
   return useMutation({
     mutationFn: (data: SignUpData) => signUp(data),
+    retry: false,
     onSuccess: () => {
-      toast.success('Account created successfully!');
+      // Don't store tokens or redirect - just show success
+      // The user needs to verify their email first
+      toast.success('Account created successfully! Please check your email.');
     },
     onError: (error: any) => {
       const errorMessage =
