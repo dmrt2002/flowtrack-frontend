@@ -22,7 +22,7 @@ export interface Strategy {
 // Configuration Types
 export interface ConfigField {
   id: string;
-  type: 'text' | 'number' | 'textarea' | 'select' | 'checkbox';
+  type: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'condition';
   label: string;
   placeholder?: string;
   required: boolean;
@@ -37,6 +37,15 @@ export interface ConfigField {
   suffix?: string;
   variables?: string[];
   rows?: number;
+  helpText?: string;
+  conditionMetadata?: {
+    availableFields: string[];
+    operators: string[];
+    defaultField?: string;
+    defaultOperator?: string;
+    defaultValue?: number;
+    defaultCurrency?: 'USD' | 'INR';
+  };
 }
 
 export interface ConfigSchema {
@@ -66,6 +75,8 @@ export interface SimulationLead {
   email: string;
   source: string;
   timestamp: string;
+  budget?: number; // Only for Gatekeeper
+  company?: string; // For Nurturer/Closer
 }
 
 export interface SimulationAction {
@@ -82,10 +93,28 @@ export interface SimulationMetrics {
   estimatedConversions: number;
 }
 
+export interface StrategyLogicStep {
+  id: string;
+  label: string;
+  type: 'trigger' | 'delay' | 'condition' | 'action';
+  delayDays?: number;
+  emailNumber?: number;
+}
+
+export interface StrategyTestLead {
+  name: string;
+  email: string;
+  budget?: number; // Only for Gatekeeper
+  company?: string; // For Nurturer/Closer
+}
+
 export interface SimulationData {
   sampleLeads: SimulationLead[];
   actionsPerformed: SimulationAction[];
   metrics: SimulationMetrics;
+  logicSteps?: StrategyLogicStep[];
+  testLeads?: StrategyTestLead[];
+  strategyId?: string;
 }
 
 // Workflow Types
@@ -164,6 +193,10 @@ export interface OnboardingStatusResponse {
   currentStep: 1 | 2 | 3 | 4;
   completedSteps: number[];
   isComplete: boolean;
+  userAuthProvider?: 'clerk' | 'local';
+  signedUpWithGoogle?: boolean;
+  gmailConnected?: boolean;
+  gmailEmail?: string | null;
   selectedStrategy?: {
     id: StrategyId;
     name: string;

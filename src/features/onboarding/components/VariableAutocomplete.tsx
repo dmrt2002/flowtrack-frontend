@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface VariableAutocompleteProps {
   value: string;
@@ -71,6 +72,13 @@ export function VariableAutocomplete({
       // Show dropdown on Shift+Space
       if (e.shiftKey && e.key === ' ') {
         e.preventDefault();
+
+        // Show helpful message if no variables available
+        if (variableNames.length === 0) {
+          toast.info('No variables available for this field.');
+          return;
+        }
+
         if (textareaRef.current && variableNames.length > 0) {
           const textarea = textareaRef.current;
           const cursorPos = textarea.selectionStart;

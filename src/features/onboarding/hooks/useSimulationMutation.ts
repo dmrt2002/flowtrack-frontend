@@ -4,13 +4,7 @@ import request from '@/lib/request';
 import { mainUrl } from '@/url/url';
 import { useOnboardingStore } from '../store/onboardingStore';
 import type { SimulationResponse } from '../types';
-import {
-  toBackendStrategyId,
-  type FrontendStrategyId,
-} from '../utils/strategyMapping';
-
 interface SimulationData {
-  strategyId: FrontendStrategyId;
   configurationId: string;
 }
 
@@ -20,7 +14,6 @@ export function useSimulationMutation() {
   return useMutation({
     mutationFn: (data: SimulationData) =>
       request.post<SimulationResponse>(mainUrl.onboardingSimulate, {
-        strategyId: toBackendStrategyId(data.strategyId),
         configurationId: data.configurationId,
       }),
     retry: false,

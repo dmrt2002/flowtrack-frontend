@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Eye, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Eye, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOnboardingStore } from '../store/onboardingStore';
 import { useFormFieldsMutation } from '../hooks/useFormFieldsMutation';
 import { useFormFields } from '../hooks/useFormFields';
+import { useInitWorkflow } from '../hooks/useInitWorkflow';
 import { FieldCard } from '../components/FieldCard';
 import { FieldEditorModal } from '../components/FieldEditorModal';
 import { LivePreviewPanel } from '../components/LivePreviewPanel';
@@ -52,17 +52,24 @@ const DEFAULT_FIELDS: FormField[] = [
 const DEFAULT_FIELD_KEYS = ['name', 'email', 'companyName'];
 
 export function FormBuilderScreen() {
-  const router = useRouter();
   const {
     formFields,
     workflowId,
-    selectedStrategy,
     setFormFields,
     addFormField,
     updateFormField,
     deleteFormField,
   } = useOnboardingStore();
   const { mutate: saveFormFields, isPending } = useFormFieldsMutation();
+
+  // Initialize workflow if not already initialized
+  const {
+    isLoading: isInitializing,
+    isError: isInitError,
+    error: initError,
+    isFetching: isFetchingInit,
+    data: initData,
+  } = useInitWorkflow();
 
   // Fetch form fields from database
   const { data: formFieldsResponse, isLoading: isLoadingFormFields } =
@@ -71,10 +78,24 @@ export function FormBuilderScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const hasInitialLoadRef = useRef(false);
+  const lastWorkflowIdRef = useRef<string | null>(null);
 
   // Load form fields from database and filter out default fields
+  // Only load on initial mount or when workflowId changes, not when formFields changes locally
   useEffect(() => {
-    if (formFieldsResponse?.data?.data?.formFields && workflowId) {
+    // Reset initial load flag if workflowId changes
+    if (lastWorkflowIdRef.current !== workflowId) {
+      hasInitialLoadRef.current = false;
+      lastWorkflowIdRef.current = workflowId;
+    }
+
+    // Only load from API on initial load or when workflowId changes
+    if (
+      formFieldsResponse?.data?.data?.formFields &&
+      workflowId &&
+      !hasInitialLoadRef.current
+    ) {
       const savedFields = formFieldsResponse.data.data.formFields;
 
       // Filter out default fields (by fieldKey) and fields marked as isDefault
@@ -85,27 +106,70 @@ export function FormBuilderScreen() {
 
       // Set only custom fields in the store
       setFormFields(customFieldsOnly);
-    } else if (formFields.length === 0 && !isLoadingFormFields) {
-      // Only initialize with defaults if no fields exist and we're not loading
+      hasInitialLoadRef.current = true;
+    } else if (
+      !hasInitialLoadRef.current &&
+      !isLoadingFormFields &&
+      workflowId &&
+      !formFieldsResponse?.data?.data?.formFields
+    ) {
+      // Only initialize with empty array if no API data exists and we're not loading
+      // This handles the case where API returns no fields or hasn't loaded yet
       setFormFields([]);
+      hasInitialLoadRef.current = true;
     }
-  }, [
-    formFieldsResponse,
-    workflowId,
-    isLoadingFormFields,
-    formFields.length,
-    setFormFields,
-  ]);
+  }, [formFieldsResponse, workflowId, isLoadingFormFields, setFormFields]);
 
-  // Check if user has completed step 1
-  useEffect(() => {
-    if (!selectedStrategy.id || !workflowId) {
-      router.push('/onboarding/strategy');
-    }
-  }, [selectedStrategy.id, workflowId, router]);
+  // Show loading state while initializing workflow
+  // Only show loading if we're actually fetching and don't have a workflowId yet
+  if ((isInitializing || isFetchingInit) && !workflowId) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="border-primary mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
+          <p className="text-muted-foreground">Initializing workflow...</p>
+          {initData && (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Data received, setting up...
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // If we have init data but workflowId is still not set, wait a bit for useEffect to update
+  if (initData?.success && initData.data && !workflowId) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="border-primary mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
+          <p className="text-muted-foreground">Setting up workflow...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if initialization failed
+  if (isInitError) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Failed to initialize workflow</p>
+          <p className="text-muted-foreground text-sm">
+            {(initError as any)?.response?.data?.message ||
+              'Please try refreshing the page'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Use default fields (budget is no longer a default field)
+  const defaultFieldsWithStrategy = DEFAULT_FIELDS;
 
   const allFields = [
-    ...DEFAULT_FIELDS,
+    ...defaultFieldsWithStrategy,
     ...formFields.filter((f) => !f.isDefault),
   ];
   const customFields = formFields.filter((f) => !f.isDefault);
@@ -177,10 +241,6 @@ export function FormBuilderScreen() {
     });
   };
 
-  const handleBack = () => {
-    router.push('/onboarding/strategy');
-  };
-
   return (
     <div className="bg-background flex min-h-screen flex-col lg:flex-row">
       {/* Left Panel: Form Builder */}
@@ -188,13 +248,6 @@ export function FormBuilderScreen() {
         <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
-            <button
-              onClick={handleBack}
-              className="text-muted-foreground hover:text-primary mb-4 flex items-center gap-2 text-sm transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
@@ -206,7 +259,7 @@ export function FormBuilderScreen() {
                 </p>
               </div>
               <div className="text-muted-foreground text-xs font-medium sm:text-sm">
-                Step 2 of 5
+                Step 1 of 4
               </div>
             </div>
           </div>
@@ -217,7 +270,7 @@ export function FormBuilderScreen() {
               Default Fields
             </h2>
             <div className="space-y-3">
-              {DEFAULT_FIELDS.map((field) => (
+              {defaultFieldsWithStrategy.map((field) => (
                 <FieldCard key={field.id} field={field} isDefault />
               ))}
             </div>
@@ -321,16 +374,8 @@ export function FormBuilderScreen() {
       </button>
 
       {/* Bottom Action Bar */}
-      <div className="border-border fixed right-0 bottom-0 left-0 z-10 flex flex-col gap-3 border-t bg-white p-4 shadow-[0_-4px_6px_rgba(0,0,0,0.05)] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 lg:px-10 lg:py-6">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={isPending}
-          className="w-full sm:w-auto"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+      <div className="border-border fixed right-0 bottom-0 left-0 z-10 flex flex-col gap-3 border-t bg-white p-4 shadow-[0_-4px_6px_rgba(0,0,0,0.05)] sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-4 lg:px-10 lg:py-6">
+        {/* Back button removed - form builder is the first step */}
         <Button
           onClick={handleContinue}
           disabled={isPending}
@@ -340,7 +385,7 @@ export function FormBuilderScreen() {
             'Saving...'
           ) : (
             <>
-              Continue to Email Configuration
+              Continue to Integrations
               <span className="hidden sm:inline"> →</span>
             </>
           )}

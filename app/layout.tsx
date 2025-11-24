@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
 import '@/styles/globals.css';
 import { ThemeProvider } from '@/features/applicationWrapper/ThemeProvider';
 import { ApplicationWrappers } from '@/features/applicationWrapper';
@@ -25,19 +26,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <ApplicationWrappers>{children}</ApplicationWrappers>
-        </ThemeProvider>
-      </body>
-    </html>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ApplicationWrappers>{children}</ApplicationWrappers>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

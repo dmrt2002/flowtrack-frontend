@@ -5,13 +5,7 @@ import request from '@/lib/request';
 import { mainUrl } from '@/url/url';
 import { useOnboardingStore } from '../store/onboardingStore';
 import type { ConfigurationResponse } from '../types';
-import {
-  toBackendStrategyId,
-  type FrontendStrategyId,
-} from '../utils/strategyMapping';
-
 interface ConfigurationData {
-  strategyId: FrontendStrategyId;
   configuration: Record<string, unknown>;
 }
 
@@ -22,7 +16,6 @@ export function useConfigurationMutation() {
   return useMutation({
     mutationFn: (data: ConfigurationData) =>
       request.post<ConfigurationResponse>(mainUrl.onboardingConfigure, {
-        strategyId: toBackendStrategyId(data.strategyId),
         configuration: data.configuration,
       }),
     retry: false,
@@ -31,7 +24,7 @@ export function useConfigurationMutation() {
       setConfiguration(data.configuration, data.configurationId);
       completeStep(2);
       toast.success('Configuration saved!');
-      router.push('/onboarding/connect');
+      router.push('/onboarding/simulate');
     },
     onError: (error: unknown) => {
       const errorMessage =

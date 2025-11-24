@@ -12,6 +12,9 @@ export function TanStackQueryProvider({ children }: { children: ReactNode }) {
             retry: false,
             refetchOnWindowFocus: false,
             refetchOnMount: false,
+            refetchOnReconnect: false,
+            staleTime: 5 * 60 * 1000, // 5 minutes default stale time
+            gcTime: 10 * 60 * 1000, // 10 minutes garbage collection time
           },
         },
       })

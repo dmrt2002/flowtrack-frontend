@@ -22,7 +22,7 @@ export function useFormFieldsMutation() {
       setFormFields(data.formFields);
       completeStep(2);
       toast.success('Form fields saved!');
-      router.push('/onboarding/configure');
+      router.push('/onboarding/integrations');
     },
     onError: (error: unknown) => {
       const errorMessage =

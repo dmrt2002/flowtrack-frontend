@@ -15,7 +15,7 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
     <div className="bg-background min-h-screen">
       <div className="container mx-auto">
         {children}
-        <ProgressBar currentStep={currentStep} totalSteps={5} />
+        <ProgressBar currentStep={currentStep} totalSteps={4} />
       </div>
     </div>
   );

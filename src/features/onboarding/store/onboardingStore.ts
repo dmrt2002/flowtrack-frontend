@@ -6,16 +6,18 @@ import type {
   OAuthProvider,
   OAuthConnection,
   SimulationData,
+  ConfigSchema,
 } from '../types';
 import type { FormField } from '../types/form-fields';
 
 interface OnboardingState {
   // Step tracking
-  currentStep: 1 | 2 | 3 | 4 | 5;
+  currentStep: 1 | 2 | 3 | 4;
   completedSteps: number[];
   isOnboardingComplete: boolean;
 
-  // Step 1: Strategy Selection
+  // Step 1: Strategy Selection (DEPRECATED - kept for backward compatibility)
+  // Workflow is now auto-created on initialization
   selectedStrategy: {
     id: StrategyId | null;
     name: string | null;
@@ -27,9 +29,16 @@ interface OnboardingState {
   formFields: FormField[];
   workflowId: string | null;
 
+  // Step 2.5: Integrations (Gmail + Scheduling)
+  gmailConnected: boolean;
+  gmailEmail: string | null;
+  calendlyLink: string | null;
+  schedulingType: 'CALENDLY' | 'GOOGLE_MEET' | null;
+
   // Step 3: Configuration
   configuration: Configuration;
   configurationId: string | null;
+  configurationSchema: ConfigSchema | null;
 
   // Step 4: OAuth Connection
   oauthConnection: OAuthConnection;
@@ -53,7 +62,11 @@ interface OnboardingState {
   deleteFormField: (id: string) => void;
   reorderFormFields: (fromIndex: number, toIndex: number) => void;
   setWorkflowId: (workflowId: string) => void;
+  setGmailConnection: (email: string) => void;
+  setCalendlyLink: (link: string) => void;
+  setSchedulingPreference: (type: 'CALENDLY' | 'GOOGLE_MEET') => void;
   setConfiguration: (config: Configuration, configId?: string) => void;
+  setConfigurationSchema: (schema: ConfigSchema) => void;
   setOAuthConnection: (provider: OAuthProvider, email: string) => void;
   setSimulationData: (data: SimulationData) => void;
   completeOnboarding: () => void;
@@ -78,8 +91,14 @@ export const useOnboardingStore = create<OnboardingState>()(
       formFields: [],
       workflowId: null,
 
+      gmailConnected: false,
+      gmailEmail: null,
+      calendlyLink: null,
+      schedulingType: null,
+
       configuration: {},
       configurationId: null,
+      configurationSchema: null,
 
       oauthConnection: {
         provider: null,
@@ -98,7 +117,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       completeStep: (step) =>
         set((state) => ({
           completedSteps: [...new Set([...state.completedSteps, step])],
-          currentStep: Math.min(step + 1, 5) as 1 | 2 | 3 | 4 | 5,
+          currentStep: Math.min(step + 1, 4) as 1 | 2 | 3 | 4,
         })),
 
       setStrategy: (strategyId, name, templateId, workflowId) =>
@@ -146,10 +165,31 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       setWorkflowId: (workflowId) => set({ workflowId }),
 
+      setGmailConnection: (email) =>
+        set({
+          gmailConnected: true,
+          gmailEmail: email,
+        }),
+
+      setCalendlyLink: (link) =>
+        set({
+          calendlyLink: link,
+        }),
+
+      setSchedulingPreference: (type) =>
+        set({
+          schedulingType: type,
+        }),
+
       setConfiguration: (config, configId) =>
         set({
           configuration: config,
           configurationId: configId || null,
+        }),
+
+      setConfigurationSchema: (schema) =>
+        set({
+          configurationSchema: schema,
         }),
 
       setOAuthConnection: (provider, email) =>
@@ -187,8 +227,13 @@ export const useOnboardingStore = create<OnboardingState>()(
           },
           formFields: [],
           workflowId: null,
+          gmailConnected: false,
+          gmailEmail: null,
+          calendlyLink: null,
+          schedulingType: null,
           configuration: {},
           configurationId: null,
+          configurationSchema: null,
           oauthConnection: {
             provider: null,
             email: null,
@@ -202,7 +247,7 @@ export const useOnboardingStore = create<OnboardingState>()(
     }),
     {
       name: 'flowtrack-onboarding',
-      version: 1,
+      version: 4, // Incremented to clear cache (removed bookingUrl from configuration schema)
     }
   )
 );

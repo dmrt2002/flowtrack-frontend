@@ -12,6 +12,9 @@ export function useFormFields(workflowId: string | null) {
       ),
     enabled: !!workflowId,
     retry: false,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevent refetching
+    refetchOnMount: false, // Don't refetch on mount
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
   });
 }

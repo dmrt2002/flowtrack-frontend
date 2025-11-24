@@ -22,7 +22,7 @@ export function useGoogleSignInMutation() {
       if (hasCompletedOnboarding) {
         router.push('/dashboard-home');
       } else {
-        router.push('/onboarding/strategy');
+        router.push('/onboarding/form-builder');
       }
     },
     onError: (error: any) => {

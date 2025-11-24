@@ -8,6 +8,7 @@ import { useConfigurationMutation } from '../hooks/useConfigurationMutation';
 import { useFormFields } from '../hooks/useFormFields';
 import { VariableAutocomplete } from '../components/VariableAutocomplete';
 import { EmailPreviewPanel } from '../components/EmailPreviewPanel';
+import { ConditionInput } from '../components/ConditionInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,17 +18,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { ConfigField, ConfigSchema } from '../types';
+import type { ConfigField } from '../types';
+import type { FormField } from '../types/form-fields';
 
 export function ConfigurationScreen() {
   const router = useRouter();
-  const { selectedStrategy, configuration, workflowId } = useOnboardingStore();
+  const { configuration, workflowId, configurationSchema } =
+    useOnboardingStore();
   const { mutate: saveConfiguration, isPending } = useConfigurationMutation();
   const [formData, setFormData] =
     useState<Record<string, unknown>>(configuration);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [configSchema, setConfigSchema] = useState<ConfigSchema | null>(null);
-  const [defaultTemplateSet, setDefaultTemplateSet] = useState(false);
 
   // Fetch form fields from database
   const {
@@ -36,77 +37,271 @@ export function ConfigurationScreen() {
     error: formFieldsError,
   } = useFormFields(workflowId);
 
+  // Extract available variables from form fields
+  const availableVariables =
+    formFieldsResponse?.data?.data?.availableVariables || [];
+
+  // Extract numeric fields from form fields for condition builder
+  const getNumericFields = (): string[] => {
+    const formFields: FormField[] =
+      formFieldsResponse?.data?.data?.formFields || [];
+    return formFields
+      .filter((field) => field.fieldType === 'NUMBER')
+      .map((field) => field.fieldKey);
+  };
+
+  const numericFields = getNumericFields();
+
+  // Initialize defaults on first mount when configuration is empty
   useEffect(() => {
-    // Build configuration schema based on selected strategy
-    // Remove leadSource field and use dynamic variables from form fields
-    if (selectedStrategy.id) {
-      // Extract available variables from the response
-      // Response structure: { data: { success: true, data: { availableVariables: [...] } } }
-      const availableVariables =
-        formFieldsResponse?.data?.data?.availableVariables || [];
+    const isFormDataEmpty = Object.keys(formData).length === 0;
 
-      // Generate default email template with available variables
-      // Prefer {name} if available, otherwise use first variable
-      const nameVariable =
-        availableVariables.find(
-          (v) =>
-            v.toLowerCase().includes('{name}') ||
-            v.toLowerCase().includes('name')
-        ) ||
-        availableVariables[0] ||
-        '{name}';
+    if (configurationSchema && isFormDataEmpty && !configuration) {
+      const initialDefaults: Record<string, unknown> = {};
 
-      // Extract variable name without braces for the template
-      const nameVar = nameVariable.replace(/[{}]/g, '');
+      // Initialize condition field default
+      const qualificationField = configurationSchema.fields.find(
+        (f) => f.id === 'qualificationCriteria' && f.type === 'condition'
+      );
+      if (qualificationField?.conditionMetadata) {
+        const { defaultField, defaultOperator, defaultValue } =
+          qualificationField.conditionMetadata;
+        if (defaultField && defaultOperator && defaultValue !== undefined) {
+          initialDefaults.qualificationCriteria = `{${defaultField}} ${defaultOperator} ${defaultValue}`;
+        }
+      }
 
-      const defaultEmailTemplate = `Hi {${nameVar}},\n\nThanks for reaching out! I'd love to learn more about what you're looking for.\n\nCan you tell me a bit about your current challenges?\n\nBest regards`;
+      // Initialize email template default
+      const emailTemplateField = configurationSchema.fields.find(
+        (f) => f.id === 'emailTemplate'
+      );
+      if (emailTemplateField?.placeholder) {
+        initialDefaults.emailTemplate = emailTemplateField.placeholder;
+      }
 
-      const defaultSchema: ConfigSchema = {
-        strategyId: selectedStrategy.id,
-        fields: [
-          {
-            id: 'responseTime',
-            type: 'number',
-            label: 'How quickly should we respond?',
-            placeholder: '5',
-            suffix: 'minutes',
-            required: true,
-            validation: { min: 1, max: 1440 },
-          },
-          {
-            id: 'emailTemplate',
-            type: 'textarea',
-            label: 'What should the first email say?',
-            placeholder: 'Hi {firstName}, thanks for reaching out...',
-            required: true,
-            rows: 5,
-            variables: availableVariables,
-          },
-        ],
-      };
-      setConfigSchema(defaultSchema);
+      // Initialize follow-up template default
+      const followUpTemplateField = configurationSchema.fields.find(
+        (f) => f.id === 'followUpTemplate'
+      );
+      if (followUpTemplateField?.placeholder) {
+        initialDefaults.followUpTemplate = followUpTemplateField.placeholder;
+      }
 
-      // Set default email template once when form fields are loaded
-      if (
-        availableVariables.length > 0 &&
-        !defaultTemplateSet &&
-        !formData.emailTemplate
-      ) {
-        setFormData((prev) => ({
-          ...prev,
-          emailTemplate: defaultEmailTemplate,
-        }));
-        setDefaultTemplateSet(true);
+      // Initialize email subject default
+      const emailSubjectField = configurationSchema.fields.find(
+        (f) => f.id === 'emailSubject'
+      );
+      if (emailSubjectField?.placeholder) {
+        initialDefaults.emailSubject = emailSubjectField.placeholder;
+      }
+
+      // Initialize number fields with their placeholder values
+      const followUpDelayField = configurationSchema.fields.find(
+        (f) => f.id === 'followUpDelayDays'
+      );
+      if (followUpDelayField?.placeholder) {
+        initialDefaults.followUpDelayDays =
+          Number(followUpDelayField.placeholder) || 3;
+      }
+
+      const bookingDeadlineField = configurationSchema.fields.find(
+        (f) => f.id === 'bookingDeadlineDays'
+      );
+      if (bookingDeadlineField?.placeholder) {
+        initialDefaults.bookingDeadlineDays =
+          Number(bookingDeadlineField.placeholder) || 7;
+      }
+
+      if (Object.keys(initialDefaults).length > 0) {
+        setFormData(initialDefaults);
       }
     }
-  }, [
-    selectedStrategy.id,
-    formFieldsResponse,
-    defaultTemplateSet,
-    formData.emailTemplate,
-  ]);
+  }, [configurationSchema, formData, configuration]); // Run when schema loads or form data changes
+
+  // Pre-fill default values when schema loads
+  useEffect(() => {
+    if (configurationSchema) {
+      setFormData((prev) => {
+        const updates: Record<string, unknown> = {};
+        let hasUpdates = false;
+
+        // Pre-fill email template
+        const emailTemplateField = configurationSchema.fields.find(
+          (f) => f.id === 'emailTemplate'
+        );
+        if (emailTemplateField?.placeholder) {
+          const currentValue = prev.emailTemplate;
+          if (!currentValue || String(currentValue).trim() === '') {
+            updates.emailTemplate = emailTemplateField.placeholder;
+            hasUpdates = true;
+          }
+        }
+
+        // Pre-fill follow-up template
+        const followUpTemplateField = configurationSchema.fields.find(
+          (f) => f.id === 'followUpTemplate'
+        );
+        if (followUpTemplateField?.placeholder) {
+          const currentValue = prev.followUpTemplate;
+          if (!currentValue || String(currentValue).trim() === '') {
+            updates.followUpTemplate = followUpTemplateField.placeholder;
+            hasUpdates = true;
+          }
+        }
+
+        // Pre-fill email subject
+        const emailSubjectField = configurationSchema.fields.find(
+          (f) => f.id === 'emailSubject'
+        );
+        if (emailSubjectField?.placeholder) {
+          const currentValue = prev.emailSubject;
+          if (!currentValue || String(currentValue).trim() === '') {
+            updates.emailSubject = emailSubjectField.placeholder;
+            hasUpdates = true;
+          }
+        }
+
+        // Pre-fill number fields with their placeholder values
+        const followUpDelayField = configurationSchema.fields.find(
+          (f) => f.id === 'followUpDelayDays'
+        );
+        if (followUpDelayField?.placeholder) {
+          const currentValue = prev.followUpDelayDays;
+          if (
+            currentValue === undefined ||
+            currentValue === null ||
+            currentValue === ''
+          ) {
+            updates.followUpDelayDays =
+              Number(followUpDelayField.placeholder) || 3;
+            hasUpdates = true;
+          }
+        }
+
+        const bookingDeadlineField = configurationSchema.fields.find(
+          (f) => f.id === 'bookingDeadlineDays'
+        );
+        if (bookingDeadlineField?.placeholder) {
+          const currentValue = prev.bookingDeadlineDays;
+          if (
+            currentValue === undefined ||
+            currentValue === null ||
+            currentValue === ''
+          ) {
+            updates.bookingDeadlineDays =
+              Number(bookingDeadlineField.placeholder) || 7;
+            hasUpdates = true;
+          }
+        }
+
+        // Pre-fill condition field with default value if empty or invalid
+        const qualificationField = configurationSchema.fields.find(
+          (f) => f.id === 'qualificationCriteria' && f.type === 'condition'
+        );
+        if (qualificationField?.conditionMetadata) {
+          const currentValue = prev.qualificationCriteria;
+          const { defaultField, defaultOperator, defaultValue } =
+            qualificationField.conditionMetadata;
+
+          // Check if value is empty, null, undefined, or empty string
+          const isEmpty = !currentValue || String(currentValue).trim() === '';
+
+          // Check if value is invalid (doesn't match condition pattern)
+          const conditionPattern =
+            /^\{([a-zA-Z][a-zA-Z0-9_]*)\}\s*(>|<|>=|<=|==|!=)\s*(\d+(\.\d+)?)$/;
+          const isValid =
+            currentValue && conditionPattern.test(String(currentValue).trim());
+
+          if (isEmpty || !isValid) {
+            if (defaultField && defaultOperator && defaultValue !== undefined) {
+              updates.qualificationCriteria = `{${defaultField}} ${defaultOperator} ${defaultValue}`;
+              hasUpdates = true;
+            }
+          }
+        }
+
+        // Only update if there are changes
+        return hasUpdates ? { ...prev, ...updates } : prev;
+      });
+    }
+  }, [configurationSchema]);
+
+  // Use available variables for fields that support them but don't have variables defined
+  // The backend schema should already include variables, but we can enhance textarea fields
+  // Also populate condition metadata with actual numeric fields
+  // Filter out CRM field, responseTime field, emailSubject, and bookingUrl if they exist
+  const enhancedSchema = configurationSchema
+    ? {
+        ...configurationSchema,
+        fields: configurationSchema.fields
+          .filter(
+            (field) =>
+              field.id !== 'crmIntegration' &&
+              field.id !== 'responseTime' &&
+              field.id !== 'emailSubject' &&
+              field.id !== 'bookingUrl' // Remove bookingUrl - handled in Integrations step
+          )
+          .map((field) => {
+            // If field is a textarea and doesn't have variables, add available variables
+            if (
+              field.type === 'textarea' &&
+              !field.variables &&
+              availableVariables.length > 0
+            ) {
+              return {
+                ...field,
+                variables: availableVariables,
+              };
+            }
+            // If field is a condition, populate availableFields with actual numeric fields
+            if (field.type === 'condition' && field.conditionMetadata) {
+              return {
+                ...field,
+                conditionMetadata: {
+                  ...field.conditionMetadata,
+                  availableFields:
+                    numericFields.length > 0
+                      ? numericFields
+                      : field.conditionMetadata.availableFields || ['budget'],
+                },
+              };
+            }
+            return field;
+          }),
+      }
+    : null;
 
   const validateField = (field: ConfigField, value: unknown): string | null => {
+    // Special handling for condition type
+    if (field.type === 'condition') {
+      if (field.required && !value) {
+        return `${field.label} is required`;
+      }
+      if (value) {
+        // Validate condition syntax (string format: "{field} operator value")
+        const conditionStr = String(value);
+        const conditionPattern =
+          /^\{([a-zA-Z][a-zA-Z0-9_]*)\}\s*(>|<|>=|<=|==|!=)\s*(\d+(\.\d+)?)$/;
+        if (!conditionPattern.test(conditionStr.trim())) {
+          return 'Invalid format. Use: {fieldName} operator value (e.g., {budget} > 1000)';
+        }
+        // Validate field exists in available fields
+        const match = conditionStr.trim().match(conditionPattern);
+        if (match) {
+          const fieldName = match[1];
+          const availableFields =
+            field.conditionMetadata?.availableFields || numericFields;
+          if (
+            availableFields.length > 0 &&
+            !availableFields.includes(fieldName)
+          ) {
+            return `Field "${fieldName}" is not available. Available fields: ${availableFields.join(', ')}`;
+          }
+        }
+      }
+      return null;
+    }
+
     if (field.required && !value) {
       return `${field.label} is required`;
     }
@@ -126,6 +321,13 @@ export function ConfigurationScreen() {
         strValue.length > field.validation.maxLength
       ) {
         return `Must be less than ${field.validation.maxLength} characters`;
+      }
+      // Pattern validation (e.g., for URLs)
+      if (field.validation?.pattern) {
+        const regex = new RegExp(field.validation.pattern);
+        if (!regex.test(strValue)) {
+          return 'Invalid format';
+        }
       }
     }
 
@@ -150,10 +352,10 @@ export function ConfigurationScreen() {
   };
 
   const handleSubmit = () => {
-    if (!configSchema || !selectedStrategy.id) return;
+    if (!configurationSchema) return;
 
     const newErrors: Record<string, string> = {};
-    configSchema.fields.forEach((field) => {
+    configurationSchema.fields.forEach((field) => {
       const error = validateField(field, formData[field.id]);
       if (error) newErrors[field.id] = error;
     });
@@ -164,7 +366,6 @@ export function ConfigurationScreen() {
     }
 
     saveConfiguration({
-      strategyId: selectedStrategy.id,
       configuration: formData,
     });
   };
@@ -193,14 +394,34 @@ export function ConfigurationScreen() {
                 : 'Flexible',
         };
       }
-      if (field.id === 'emailTemplate') {
+      if (field.id === 'emailTemplate' || field.id === 'declineEmailBody') {
         return {
           icon: Mail,
           description:
-            'Write the first email that will be sent to new leads. Use variables to personalize each message.',
+            field.id === 'declineEmailBody'
+              ? "Write a polite decline email for leads that don't meet your criteria. Use variables to personalize each message."
+              : 'Write the first email that will be sent to new leads. Use variables to personalize each message.',
         };
       }
-      return { icon: null, description: '' };
+      if (field.id === 'budgetThreshold') {
+        return {
+          icon: Zap,
+          description:
+            field.helpText ||
+            'Set the minimum budget threshold for qualifying leads.',
+        };
+      }
+      if (field.id === 'qualificationCriteria') {
+        return {
+          icon: Zap,
+          description:
+            field.helpText || 'Qualified leads get priority treatment',
+        };
+      }
+      return {
+        icon: null,
+        description: field.helpText || '',
+      };
     };
 
     const { icon: Icon, description, badge } = getFieldMeta();
@@ -237,7 +458,31 @@ export function ConfigurationScreen() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {field.type === 'textarea' ? (
+          {field.type === 'condition' ? (
+            <ConditionInput
+              id={field.id}
+              value={String(formData[field.id] || '')}
+              onChange={(value) => {
+                setFormData({ ...formData, [field.id]: value });
+                if (errors[field.id]) {
+                  setErrors({ ...errors, [field.id]: '' });
+                }
+              }}
+              availableFields={
+                field.conditionMetadata?.availableFields &&
+                field.conditionMetadata.availableFields.length > 0
+                  ? field.conditionMetadata.availableFields
+                  : numericFields
+              }
+              placeholder={
+                field.conditionMetadata?.defaultField &&
+                field.conditionMetadata?.defaultValue
+                  ? `{${field.conditionMetadata.defaultField}} ${field.conditionMetadata.defaultOperator || '>'} ${field.conditionMetadata.defaultValue}`
+                  : '{budget} > 1000'
+              }
+              required={field.required}
+            />
+          ) : field.type === 'textarea' ? (
             field.variables && field.variables.length > 0 ? (
               <div className="space-y-3">
                 <VariableAutocomplete
@@ -322,11 +567,10 @@ export function ConfigurationScreen() {
                   </div>
                 )}
               </div>
-              {field.id === 'responseTime' && (
-                <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                  <Zap className="h-3 w-3" />
-                  <span>Recommended: 5-15 minutes for best results</span>
-                </div>
+              {field.helpText && (
+                <p className="text-muted-foreground text-xs">
+                  {field.helpText}
+                </p>
               )}
             </div>
           )}
@@ -338,8 +582,8 @@ export function ConfigurationScreen() {
     );
   };
 
-  // Show loading state while fetching form fields
-  if (isLoadingFormFields || !configSchema) {
+  // Show loading state while fetching form fields or schema
+  if (isLoadingFormFields || !configurationSchema) {
     return (
       <div className="bg-background flex min-h-screen flex-col">
         <div className="flex-1 overflow-y-auto pb-24 md:pb-28 lg:pb-0">
@@ -378,10 +622,9 @@ export function ConfigurationScreen() {
     );
   }
 
-  const availableVariables =
-    formFieldsResponse?.data?.data?.availableVariables || [];
   const emailTemplate = String(formData.emailTemplate || '');
-  const responseTime = Number(formData.responseTime) || undefined;
+  // Default responseTime to 5 minutes for preview (field is hidden from UI)
+  const responseTime = Number(formData.responseTime) || 5;
 
   return (
     <div className="bg-background flex h-screen flex-col overflow-hidden lg:flex-row">
@@ -404,18 +647,18 @@ export function ConfigurationScreen() {
                     Customize your automation
                   </h1>
                   <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                    Configure your {selectedStrategy.name} strategy
+                    Configure your automation workflow
                   </p>
                 </div>
                 <div className="text-muted-foreground text-xs font-medium sm:text-sm">
-                  Step 3 of 5
+                  Step 3 of 4
                 </div>
               </div>
             </div>
 
             {/* Form Fields */}
             <div className="space-y-6">
-              {configSchema.fields.map(renderField)}
+              {enhancedSchema?.fields.map(renderField) || []}
             </div>
           </div>
         </div>

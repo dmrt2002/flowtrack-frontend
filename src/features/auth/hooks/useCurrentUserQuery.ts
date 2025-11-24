@@ -14,6 +14,11 @@ export function useCurrentUserQuery() {
     queryFn: getCurrentUser,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    refetchOnMount: false, // Don't refetch on mount
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
+    enabled: false, // Disable automatic fetching - must be manually triggered
     onSuccess: (data) => {
       setUser(data);
       setLoading(false);

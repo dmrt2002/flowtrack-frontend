@@ -7,7 +7,6 @@ import { useOnboardingStore } from '../store/onboardingStore';
 import type { ActivateWorkflowResponse } from '../types';
 
 interface ActivateWorkflowData {
-  strategyId: string;
   configurationId: string;
 }
 
@@ -17,7 +16,9 @@ export function useActivateWorkflowMutation() {
 
   return useMutation({
     mutationFn: (data: ActivateWorkflowData) =>
-      request.post<ActivateWorkflowResponse>(mainUrl.workflowActivate, data),
+      request.post<ActivateWorkflowResponse>(mainUrl.workflowActivate, {
+        configurationId: data.configurationId,
+      }),
     retry: false,
     onSuccess: () => {
       completeOnboarding();
