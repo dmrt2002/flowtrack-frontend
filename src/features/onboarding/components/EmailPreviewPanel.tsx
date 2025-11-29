@@ -7,12 +7,14 @@ interface EmailPreviewPanelProps {
   emailTemplate: string;
   availableVariables: string[];
   responseTime?: number;
+  activeTemplateLabel?: string;
 }
 
 export function EmailPreviewPanel({
   emailTemplate,
   availableVariables,
   responseTime,
+  activeTemplateLabel,
 }: EmailPreviewPanelProps) {
   // Replace variables with sample data for preview
   const getPreviewText = (template: string) => {
@@ -69,15 +71,21 @@ export function EmailPreviewPanel({
 
   const previewText = getPreviewText(emailTemplate);
 
+  const previewHeading = activeTemplateLabel
+    ? `${activeTemplateLabel} Preview`
+    : 'Email Preview';
+
   return (
     <div className="flex h-[90%] flex-col">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-foreground mb-2 text-lg font-semibold">
-          Email Preview
+          {previewHeading}
         </h2>
         <p className="text-muted-foreground text-sm">
-          See how your email will look to leads
+          See how your{' '}
+          {activeTemplateLabel ? activeTemplateLabel.toLowerCase() : 'email'}{' '}
+          will look to leads
         </p>
       </div>
 
@@ -87,7 +95,7 @@ export function EmailPreviewPanel({
           <div className="flex items-center gap-2">
             <Mail className="text-primary h-4 w-4" />
             <CardTitle className="text-base font-semibold">
-              Email Preview
+              {previewHeading}
             </CardTitle>
           </div>
         </CardHeader>

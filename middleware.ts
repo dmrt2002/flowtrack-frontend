@@ -1,18 +1,20 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Define public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
-  '/login(.*)',
-  '/signup(.*)',
-  '/forgot-password(.*)',
-  '/auth/reset-password(.*)',
-  '/auth/verify-email(.*)',
-  '/api/webhooks(.*)', // Clerk webhooks
-]);
+const publicRoutes = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/auth/reset-password',
+  '/auth/verify-email',
+];
 
-export default clerkMiddleware(async (auth, request: NextRequest) => {
+function isPublicRoute(pathname: string): boolean {
+  return publicRoutes.some((route) => pathname.startsWith(route));
+}
+
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow API routes to pass through - backend handles authentication
@@ -20,14 +22,12 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     return NextResponse.next();
   }
 
-  const { userId } = await auth();
-
-  // Check for native auth token (cookie-based)
+  // Check for auth token (cookie-based)
   const accessToken = request.cookies.get('accessToken')?.value;
-  const isAuthenticated = !!userId || !!accessToken;
+  const isAuthenticated = !!accessToken;
 
   // Public routes handling
-  if (isPublicRoute(request)) {
+  if (isPublicRoute(pathname)) {
     // If already logged in, redirect to appropriate page
     if (isAuthenticated) {
       const onboardingComplete =
@@ -65,7 +65,7 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],

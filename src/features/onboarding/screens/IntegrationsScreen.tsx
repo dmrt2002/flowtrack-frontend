@@ -1,87 +1,134 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
-  ExternalLink,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useOnboardingStore } from '../store/onboardingStore';
-import { useSchedulingPreference } from '../hooks/useSchedulingPreference';
+import {
+  useCalendlyOAuthInitiate,
+  useCalendlyConnectionStatus,
+} from '../hooks/useCalendlyOAuth';
+import { useInitWorkflow } from '../hooks/useInitWorkflow';
 import { toast } from 'sonner';
 
 export function IntegrationsScreen() {
   const router = useRouter();
-  const { workflowId, calendlyLink, setCalendlyLink } = useOnboardingStore();
+  const searchParams = useSearchParams();
+  const { workflowId, workspaceId } = useOnboardingStore();
 
-  const { mutate: saveSchedulingPreference, isPending: isSavingCalendly } =
-    useSchedulingPreference();
+  const [calendlyConnected, setCalendlyConnected] = useState(false);
+  const [calendlyPlan, setCalendlyPlan] = useState<'FREE' | 'PRO' | null>(null);
 
-  const [calendlyInput, setCalendlyInput] = useState(calendlyLink || '');
-  const [calendlyError, setCalendlyError] = useState<string | null>(null);
+  console.log(
+    'IntegrationsScreen render - workflowId:',
+    workflowId,
+    'workspaceId:',
+    workspaceId
+  );
 
-  // Check if user has completed previous steps
+  // Initialize workflow to ensure workflowId and workspaceId are loaded
+  const { isLoading: isInitializing } = useInitWorkflow();
+
+  const { mutate: initiateCalendlyOAuth, isPending: isCalendlyLoading } =
+    useCalendlyOAuthInitiate();
+
+  const {
+    data: connectionStatus,
+    refetch: refetchConnectionStatus,
+    isLoading: isLoadingConnection,
+    isFetching: isFetchingConnection,
+  } = useCalendlyConnectionStatus(workspaceId);
+
+  console.log(
+    'Connection query state - isLoading:',
+    isLoadingConnection,
+    'isFetching:',
+    isFetchingConnection,
+    'data:',
+    connectionStatus
+  );
+
+  // Check if user has completed previous steps (only after initialization)
   useEffect(() => {
+    // Don't redirect while still initializing
+    if (isInitializing) {
+      return;
+    }
+
+    // If initialization is complete and still no workflowId, redirect to form-builder
     if (!workflowId) {
       router.push('/onboarding/form-builder');
     }
-  }, [workflowId, router]);
+  }, [workflowId, router, isInitializing]);
 
-  // Initialize calendly input from store
+  // Refetch connection status when workspaceId becomes available
   useEffect(() => {
-    if (calendlyLink) {
-      setCalendlyInput(calendlyLink);
+    if (workspaceId && !isInitializing) {
+      console.log(
+        'workspaceId loaded, refetching Calendly connection status:',
+        workspaceId
+      );
+      refetchConnectionStatus();
     }
-  }, [calendlyLink]);
+  }, [workspaceId, isInitializing, refetchConnectionStatus]);
 
-  const validateCalendlyLink = (url: string): boolean => {
-    if (!url.trim()) return false;
-    if (!url.includes('calendly.com/')) return false;
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
+  // Check connection status on page load
+  useEffect(() => {
+    console.log('Connection status updated:', connectionStatus);
+    const status = connectionStatus as any;
+    if (status?.connected) {
+      console.log('Setting Calendly as connected');
+      setCalendlyConnected(true);
+      setCalendlyPlan(status?.plan || null);
     }
-  };
+  }, [connectionStatus]);
 
-  const handleSaveCalendly = () => {
-    setCalendlyError(null);
+  // Handle OAuth callback responses
+  useEffect(() => {
+    const calendlyStatus = searchParams.get('calendly');
+    const calendlyPlanParam = searchParams.get('plan');
 
-    if (!calendlyInput.trim()) {
-      setCalendlyError('Please enter a Calendly link');
-      return;
+    if (calendlyStatus === 'success') {
+      setCalendlyConnected(true);
+      setCalendlyPlan((calendlyPlanParam as 'FREE' | 'PRO') || 'PRO');
+      toast.success(
+        calendlyPlanParam === 'FREE'
+          ? 'Calendly connected (FREE plan - polling enabled)'
+          : 'Calendly connected (PRO plan - webhooks enabled)'
+      );
+
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('calendly');
+      url.searchParams.delete('plan');
+      window.history.replaceState({}, '', url);
+    } else if (calendlyStatus === 'error') {
+      toast.error('Failed to connect Calendly. Please try again.');
+
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('calendly');
+      window.history.replaceState({}, '', url);
     }
+  }, [searchParams]);
 
-    if (!validateCalendlyLink(calendlyInput)) {
-      setCalendlyError('Please enter a valid Calendly link (calendly.com)');
-      return;
-    }
-
-    if (!workflowId) {
-      toast.error('Workflow ID is missing');
-      return;
-    }
-
-    // Save Calendly link
-    saveSchedulingPreference({
-      workflowId,
-      schedulingType: 'CALENDLY',
-      calendlyLink: calendlyInput.trim(),
-    });
+  const handleConnectCalendly = () => {
+    initiateCalendlyOAuth();
   };
 
   const handleContinue = () => {
     router.push('/onboarding/configure');
   };
 
-  const handleSkipCalendly = () => {
-    toast.info('You can add your Calendly link later from settings', {
+  const handleSkip = () => {
+    toast.info('You can connect Calendly later from settings', {
       duration: 3000,
     });
     router.push('/onboarding/configure');
@@ -89,12 +136,6 @@ export function IntegrationsScreen() {
 
   const handleBack = () => {
     router.push('/onboarding/form-builder');
-  };
-
-  const handleChangeCalendly = () => {
-    setCalendlyLink('');
-    setCalendlyInput('');
-    setCalendlyError(null);
   };
 
   return (
@@ -115,147 +156,123 @@ export function IntegrationsScreen() {
               Step 2 of 4
             </div>
             <h1 className="text-foreground mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
-              Calendar Settings
+              Calendar Integration
             </h1>
             <p className="text-muted-foreground max-w-[600px] text-sm leading-relaxed sm:text-base">
-              Add your Calendly link so leads can easily schedule meetings with
-              you.
+              Connect your Calendly account to enable automated booking links in
+              your emails with lead attribution.
             </p>
           </div>
         </div>
 
-        {/* Calendar Card */}
-        <div
-          className={`border-border rounded-xl border bg-white p-4 shadow-sm transition-all sm:p-6 ${
-            calendlyLink
-              ? 'border-green-200 bg-gradient-to-b from-white to-green-50/20'
-              : 'hover:border-neutral-300 hover:shadow-md'
-          }`}
-        >
-          <div className="flex flex-col items-start gap-4 sm:flex-row">
-            {/* Icon Container */}
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-              <Calendar className="h-6 w-6" />
-            </div>
-
-            {/* Content */}
-            <div className="w-full flex-1">
-              {/* Header Row */}
-              <div className="mb-1 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-foreground text-lg font-semibold">
-                  Calendly Link
-                </h2>
-                <span className="rounded bg-neutral-100 px-2.5 py-0.5 text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
-                  Optional
-                </span>
+        <div className="space-y-4">
+          {/* Calendly Card */}
+          <div
+            className={`border-border rounded-xl border bg-white p-4 shadow-sm transition-all sm:p-6 ${
+              calendlyConnected
+                ? 'border-green-200 bg-gradient-to-b from-white to-green-50/20'
+                : 'hover:border-neutral-300 hover:shadow-md'
+            }`}
+          >
+            <div className="flex flex-col items-start gap-4 sm:flex-row">
+              {/* Icon Container */}
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <Calendar className="h-6 w-6" />
               </div>
 
-              {/* Description */}
-              <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
-                Add your Calendly link so leads can easily schedule meetings
-                with you.
-              </p>
+              {/* Content */}
+              <div className="w-full flex-1">
+                {/* Header Row */}
+                <div className="mb-1 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-foreground text-lg font-semibold">
+                      Calendly
+                    </h2>
+                    {calendlyPlan && (
+                      <span className="rounded bg-blue-100 px-2 py-0.5 text-[11px] font-semibold tracking-wider text-blue-700 uppercase">
+                        {calendlyPlan}
+                      </span>
+                    )}
+                  </div>
+                  <span className="rounded bg-neutral-100 px-2.5 py-0.5 text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
+                    Optional
+                  </span>
+                </div>
 
-              {/* Calendly Input or Saved State */}
-              {calendlyLink ? (
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 sm:py-4">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
-                    <div className="min-w-0 flex-1">
-                      <p className="mb-1 text-sm font-semibold text-green-600">
-                        Calendly link saved
-                      </p>
-                      <a
-                        href={calendlyLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs break-all text-indigo-600 hover:underline"
-                      >
-                        {calendlyLink}
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                      </a>
+                {/* Description */}
+                <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
+                  Connect your Calendly account to automatically include booking
+                  links in your emails. Supports both FREE and PRO plans.
+                </p>
+
+                {/* Connection State */}
+                {calendlyConnected ? (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 sm:py-4">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+                      <div className="min-w-0 flex-1">
+                        <p className="mb-1 text-sm font-semibold text-green-600">
+                          Calendly connected
+                        </p>
+                        {calendlyPlan === 'FREE' && (
+                          <p className="text-xs text-green-600">
+                            Polling enabled - bookings will sync every 6 hours
+                          </p>
+                        )}
+                        {calendlyPlan === 'PRO' && (
+                          <p className="text-xs text-green-600">
+                            Webhooks enabled - real-time booking sync
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleChangeCalendly}
-                    className="h-9 border-neutral-200 px-4 text-sm font-medium text-neutral-700 hover:border-indigo-600 hover:text-indigo-600"
-                  >
-                    Change Link
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Input Group */}
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                      type="url"
-                      placeholder="https://calendly.com/your-link"
-                      value={calendlyInput}
-                      onChange={(e) => {
-                        setCalendlyInput(e.target.value);
-                        setCalendlyError(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSaveCalendly();
-                        }
-                      }}
-                      className={`h-11 flex-1 border-neutral-200 bg-neutral-50 text-[15px] transition-all focus:border-indigo-600 focus:bg-white focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] ${
-                        calendlyError ? 'border-red-500 bg-red-50' : ''
-                      }`}
-                      disabled={isSavingCalendly}
-                    />
+                ) : (
+                  <div className="space-y-3">
                     <Button
-                      onClick={handleSaveCalendly}
-                      disabled={isSavingCalendly || !calendlyInput.trim()}
-                      variant="outline"
-                      className="h-11 w-full border-neutral-200 px-5 text-sm font-semibold whitespace-nowrap text-neutral-700 hover:border-indigo-600 hover:text-indigo-600 disabled:opacity-50 sm:w-auto"
+                      onClick={handleConnectCalendly}
+                      disabled={isCalendlyLoading}
+                      className="h-11 w-full border-neutral-200 bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
                     >
-                      {isSavingCalendly ? (
+                      {isCalendlyLoading ? (
                         <>
                           <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                          Saving...
+                          Connecting...
                         </>
                       ) : (
-                        'Save'
+                        'Connect Calendly'
                       )}
                     </Button>
+
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      You&apos;ll be redirected to Calendly to authorize
+                      FlowTrack
+                    </p>
                   </div>
-
-                  {/* Error Message */}
-                  {calendlyError && (
-                    <p className="text-[13px] text-red-500">{calendlyError}</p>
-                  )}
-
-                  {/* Helper Text */}
-                  <p className="text-muted-foreground text-xs leading-relaxed">
-                    Find your Calendly link at{' '}
-                    <a
-                      href="https://calendly.com/event_types/user/me"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-indigo-600 hover:underline"
-                    >
-                      calendly.com/event_types
-                    </a>
-                  </p>
-
-                  {/* Skip Button */}
-                  <div>
-                    <Button
-                      variant="ghost"
-                      onClick={handleSkipCalendly}
-                      className="h-10 px-[18px] text-sm font-medium text-neutral-600 hover:text-neutral-700 hover:underline"
-                    >
-                      Skip for Now
-                    </Button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Info Card */}
+          {!calendlyConnected && (
+            <div className="border-border rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+              <div className="flex gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                <div>
+                  <p className="mb-1 text-sm font-semibold text-blue-900">
+                    Calendar integration is optional
+                  </p>
+                  <p className="text-xs leading-relaxed text-blue-700">
+                    You can skip this step and add Calendly integration later
+                    from your workspace settings. However, connecting now will
+                    enable automatic booking link attribution in your lead
+                    emails.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -269,19 +286,26 @@ export function IntegrationsScreen() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button
-          onClick={handleContinue}
-          className="hover:shadow-primary/30 w-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg sm:w-auto"
-        >
-          {isSavingCalendly ? (
-            'Saving...'
-          ) : (
-            <>
-              Continue to Email Configuration
-              <span className="hidden sm:inline"> →</span>
-            </>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {!calendlyConnected && (
+            <Button
+              variant="ghost"
+              onClick={handleSkip}
+              className="w-full sm:w-auto"
+            >
+              Skip for Now
+            </Button>
           )}
-        </Button>
+
+          <Button
+            onClick={handleContinue}
+            className="hover:shadow-primary/30 w-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg sm:w-auto"
+          >
+            Continue to Email Configuration
+            <span className="hidden sm:inline"> →</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

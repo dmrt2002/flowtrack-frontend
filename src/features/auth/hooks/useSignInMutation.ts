@@ -17,8 +17,18 @@ export function useSignInMutation() {
 
       toast.success('Sign in successful!');
 
-      // Redirect based on onboarding status
+      // Ensure onboarding_complete cookie is set based on user data
+      // Backend should already set this, but we set it client-side as backup
       const hasCompletedOnboarding = data.user.hasCompletedOnboarding ?? false;
+      if (hasCompletedOnboarding) {
+        document.cookie = 'onboarding_complete=true; path=/; max-age=2592000'; // 30 days
+      } else {
+        // Clear cookie if not complete
+        document.cookie =
+          'onboarding_complete=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+      }
+
+      // Redirect based on onboarding status
       if (hasCompletedOnboarding) {
         router.push('/dashboard-home');
       } else {

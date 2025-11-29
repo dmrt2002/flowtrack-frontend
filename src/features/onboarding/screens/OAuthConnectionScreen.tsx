@@ -36,13 +36,13 @@ export function OAuthConnectionScreen() {
   const handleConnectGmail = () => {
     setIsConnecting(true);
     const redirectUrl = `${window.location.origin}/onboarding/connect`;
-    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'}${mainUrl.onboardingOAuthGmail}?redirect=${encodeURIComponent(redirectUrl)}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}${mainUrl.onboardingOAuthGmail}?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   const handleConnectOutlook = () => {
     setIsConnecting(true);
     const redirectUrl = `${window.location.origin}/onboarding/connect`;
-    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'}${mainUrl.onboardingOAuthOutlook}?redirect=${encodeURIComponent(redirectUrl)}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}${mainUrl.onboardingOAuthOutlook}?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   if (oauthConnection.isConnected) {

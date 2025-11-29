@@ -9,6 +9,9 @@ import type {
   FormFieldsResponse,
 } from '../types/form-fields';
 
+// Default field keys that should be filtered out
+const DEFAULT_FIELD_KEYS = ['name', 'email', 'companyName'];
+
 export function useFormFieldsMutation() {
   const router = useRouter();
   const { setFormFields, completeStep } = useOnboardingStore();
@@ -19,7 +22,15 @@ export function useFormFieldsMutation() {
     retry: false,
     onSuccess: (response) => {
       const { data } = response.data;
-      setFormFields(data.formFields);
+
+      // Filter out default fields to prevent duplication
+      // Default fields are always shown separately in the UI
+      const customFieldsOnly = data.formFields.filter(
+        (field) =>
+          !DEFAULT_FIELD_KEYS.includes(field.fieldKey) && !field.isDefault
+      );
+
+      setFormFields(customFieldsOnly);
       completeStep(2);
       toast.success('Form fields saved!');
       router.push('/onboarding/integrations');

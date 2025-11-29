@@ -27,7 +27,7 @@ export const useCurrentUser = create<CurrentUserStore>((set) => ({
   currentUser: null,
   tokens: null,
   isAuthenticated: false,
-  isLoading: true,
+  isLoading: true, // Start with true to prevent premature redirects during initial auth check
   setUser: (userData) =>
     set({
       currentUser: userData,

@@ -13,6 +13,7 @@ interface VariableAutocompleteProps {
   id?: string;
   className?: string;
   required?: boolean;
+  onFocus?: () => void;
 }
 
 export function VariableAutocomplete({
@@ -24,6 +25,7 @@ export function VariableAutocomplete({
   id,
   className,
   required,
+  onFocus,
 }: VariableAutocompleteProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -236,6 +238,7 @@ export function VariableAutocomplete({
         onKeyDown={handleKeyDown}
         rows={rows}
         required={required}
+        onFocus={onFocus}
       />
 
       {/* Variable Dropdown */}

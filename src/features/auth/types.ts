@@ -4,6 +4,12 @@
 
 export type AuthProvider = 'clerk' | 'local';
 
+export type Workspace = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -14,6 +20,7 @@ export type User = {
   emailVerifiedAt?: string | null;
   clerkUserId?: string | null;
   hasCompletedOnboarding?: boolean;
+  workspaces?: Workspace[];
   createdAt: string;
   updatedAt?: string;
 };

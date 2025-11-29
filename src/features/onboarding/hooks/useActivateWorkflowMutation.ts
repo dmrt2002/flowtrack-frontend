@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 import request from '@/lib/request';
 import { mainUrl } from '@/url/url';
 import { useOnboardingStore } from '../store/onboardingStore';
+import { useCurrentUser } from '@/store/currentUserStore';
 import type { ActivateWorkflowResponse } from '../types';
 
 interface ActivateWorkflowData {
@@ -11,8 +11,8 @@ interface ActivateWorkflowData {
 }
 
 export function useActivateWorkflowMutation() {
-  const router = useRouter();
   const { completeOnboarding } = useOnboardingStore();
+  const { setUser, currentUser } = useCurrentUser();
 
   return useMutation({
     mutationFn: (data: ActivateWorkflowData) =>
@@ -22,11 +22,20 @@ export function useActivateWorkflowMutation() {
     retry: false,
     onSuccess: () => {
       completeOnboarding();
-      document.cookie = 'onboarding_complete=true; path=/';
-      toast.success('Automation activated! Redirecting to dashboard...');
-      setTimeout(() => {
-        router.push('/dashboard-home');
-      }, 1500);
+
+      // Set cookie (backend should also set this)
+      document.cookie = 'onboarding_complete=true; path=/; max-age=2592000'; // 30 days
+
+      // Update user in store to reflect onboarding completion
+      if (currentUser) {
+        setUser({
+          ...currentUser,
+          hasCompletedOnboarding: true,
+          onboardingCompletedAt: new Date().toISOString(),
+        });
+      }
+
+      // Don't redirect automatically - LaunchpadModal will handle navigation
     },
     onError: (error: unknown) => {
       const errorMessage =

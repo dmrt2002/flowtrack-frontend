@@ -2,100 +2,14 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useCurrentUser } from '@/store/currentUserStore';
 
 const request = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000',
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Cache for Clerk token to avoid repeated calls
-let clerkTokenCache: { token: string | null; timestamp: number } | null = null;
-const TOKEN_CACHE_DURATION = 60 * 1000; // 1 minute cache
-
-// Request interceptor to add Clerk token if available
-request.interceptors.request.use(
-  async (config) => {
-    // Skip token addition ONLY for public auth endpoints that don't need authentication
-    // These are endpoints where users register/login and don't have tokens yet
-    const publicAuthEndpoints = [
-      '/auth/register',
-      '/auth/login',
-      '/auth/forgot-password',
-      '/auth/reset-password',
-      '/auth/verify-email',
-      '/auth/resend-verification',
-    ];
-
-    const shouldSkipToken = publicAuthEndpoints.some((endpoint) =>
-      config.url?.includes(endpoint)
-    );
-
-    if (shouldSkipToken) {
-      return config;
-    }
-
-    // Try to get Clerk token (client-side only)
-    if (typeof window !== 'undefined') {
-      try {
-        // Check cache first
-        const now = Date.now();
-        if (
-          clerkTokenCache &&
-          now - clerkTokenCache.timestamp < TOKEN_CACHE_DURATION
-        ) {
-          if (clerkTokenCache.token) {
-            config.headers.Authorization = `Bearer ${clerkTokenCache.token}`;
-          }
-          return config;
-        }
-
-        // Get Clerk session token using the window.__clerk object
-        // This is available after ClerkProvider loads
-        const clerkInstance = (window as any).__clerk;
-
-        if (clerkInstance && clerkInstance.session) {
-          // Get the session token directly
-          const token = await clerkInstance.session.getToken({
-            template: 'default',
-            skipCache: false,
-          });
-
-          // Update cache
-          clerkTokenCache = {
-            token,
-            timestamp: now,
-          };
-
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        } else {
-          // Clerk not loaded or no session - set cache to avoid re-checking
-          clerkTokenCache = {
-            token: null,
-            timestamp: now,
-          };
-        }
-      } catch (error) {
-        // Clerk not available or not authenticated
-        console.error('❌ Clerk token fetch failed:', error);
-        // Clear cache on error
-        clerkTokenCache = null;
-        // Continue without token - this is expected for native auth users
-      }
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-console.log(
-  '🔧 Backend URL:',
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'
-);
+console.log('🔧 Backend URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
 
 // Response interceptor for API calls
 request.interceptors.response.use(
@@ -113,7 +27,7 @@ request.interceptors.response.use(
     if (error.response.status === 401) {
       const { clearUser } = useCurrentUser.getState();
 
-      // Skip redirect for public auth endpoints
+      // Skip redirect for public auth endpoints and logout
       const publicAuthEndpoints = [
         '/auth/forgot-password',
         '/auth/register',
@@ -121,6 +35,8 @@ request.interceptors.response.use(
         '/auth/reset-password',
         '/auth/verify-email',
         '/auth/resend-verification',
+        '/auth/logout',
+        '/auth/logout-all',
       ];
 
       const publicAuthPages = [
@@ -143,10 +59,11 @@ request.interceptors.response.use(
         currentPath.startsWith(page)
       );
 
-      clearUser();
-
-      // Only redirect if not a public auth endpoint/page and not already on login page
+      // Don't clear user or redirect for logout endpoints - let the logout handler manage it
       if (!isPublicAuthEndpoint && !isPublicAuthPage) {
+        clearUser();
+
+        // Only redirect if not a public auth endpoint/page and not already on login page
         if (currentPath !== '/login') {
           window.location.href = '/login';
         }

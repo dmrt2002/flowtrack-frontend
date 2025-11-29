@@ -8,6 +8,7 @@ interface InitWorkflowResponse {
   success: boolean;
   data: {
     workflowId: string;
+    workspaceId: string;
     configurationSchema: {
       fields: Array<{
         id: string;
@@ -33,8 +34,13 @@ interface InitWorkflowResponse {
 }
 
 export function useInitWorkflow() {
-  const { workflowId, setWorkflowId, setConfigurationSchema } =
-    useOnboardingStore();
+  const {
+    workflowId,
+    workspaceId,
+    setWorkflowId,
+    setWorkspaceId,
+    setConfigurationSchema,
+  } = useOnboardingStore();
   const hasProcessedRef = useRef(false);
   const processedQueryDataRef = useRef<InitWorkflowResponse | null>(null);
 
@@ -69,46 +75,73 @@ export function useInitWorkflow() {
     // The backend handles returning existing workflow if it exists
   });
 
-  // Update store when data is available (only if workflowId is not already set)
+  // Update store when data is available
   // Use ref to prevent re-processing the same query data
   useEffect(() => {
     // Only process if:
     // 1. Query has data
-    // 2. WorkflowId is still null (hasn't been set yet)
-    // 3. We haven't already processed this exact query data
+    // 2. We haven't already processed this exact query data
     if (
       query.data?.success &&
       query.data.data &&
-      !workflowId &&
       processedQueryDataRef.current !== query.data
     ) {
-      const { workflowId: newWorkflowId, configurationSchema } =
-        query.data.data;
+      const {
+        workflowId: newWorkflowId,
+        workspaceId: newWorkspaceId,
+        configurationSchema,
+      } = query.data.data;
 
-      // Guard: Don't set if we've already processed or if workflowId was set elsewhere
-      if (hasProcessedRef.current || !newWorkflowId) {
+      console.log(
+        '🔍 useInitWorkflow processing:',
+        'newWorkflowId:',
+        newWorkflowId,
+        'newWorkspaceId:',
+        newWorkspaceId,
+        'hasProcessedRef:',
+        hasProcessedRef.current,
+        'current workflowId:',
+        workflowId,
+        'current workspaceId:',
+        workspaceId
+      );
+
+      // Guard: Don't set if we've already processed
+      if (hasProcessedRef.current) {
+        console.log('❌ Skipping update - already processed');
         return;
       }
 
       console.log(
-        'Setting workflowId:',
+        '✅ Setting workflowId:',
         newWorkflowId,
-        'Current workflowId:',
-        workflowId
+        'workspaceId:',
+        newWorkspaceId
       );
 
       // Mark as processed before setting to prevent race conditions
       hasProcessedRef.current = true;
       processedQueryDataRef.current = query.data;
 
+      // Always set all values from the response
       if (newWorkflowId) {
         setWorkflowId(newWorkflowId);
+      }
+      if (newWorkspaceId) {
+        setWorkspaceId(newWorkspaceId);
       }
       if (configurationSchema) {
         setConfigurationSchema(configurationSchema);
       }
     }
-  }, [query.data, setWorkflowId, setConfigurationSchema, workflowId]); // Include workflowId to satisfy hook deps
+  }, [
+    query.data,
+    setWorkflowId,
+    setWorkspaceId,
+    setConfigurationSchema,
+    workflowId,
+    workspaceId,
+  ]); // Include both IDs to satisfy hook deps
 
   // Reset ref if workflowId becomes null (e.g., after logout)
   useEffect(() => {

@@ -229,15 +229,26 @@ export function FormBuilderScreen() {
       return;
     }
 
-    // Only save custom fields to the database (default fields are always hardcoded)
-    const fieldsToSave = customFields.map((field, index) => ({
-      ...field,
-      displayOrder: index,
-    }));
+    // Save ALL fields (default + custom) to the database
+    // Backend deletes existing fields and recreates them, so we need to send everything
+    const allFieldsToSave = [
+      ...defaultFieldsWithStrategy.map((field, index) => ({
+        fieldKey: field.fieldKey,
+        label: field.label,
+        fieldType: field.fieldType,
+        placeholder: field.placeholder,
+        isRequired: field.isRequired,
+        displayOrder: index,
+      })),
+      ...customFields.map((field, index) => ({
+        ...field,
+        displayOrder: defaultFieldsWithStrategy.length + index,
+      })),
+    ];
 
     saveFormFields({
       workflowId,
-      formFields: fieldsToSave,
+      formFields: allFieldsToSave,
     });
   };
 

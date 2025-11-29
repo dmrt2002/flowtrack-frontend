@@ -28,6 +28,7 @@ interface OnboardingState {
   // Step 2: Form Builder
   formFields: FormField[];
   workflowId: string | null;
+  workspaceId: string | null;
 
   // Step 2.5: Integrations (Gmail + Scheduling)
   gmailConnected: boolean;
@@ -62,6 +63,7 @@ interface OnboardingState {
   deleteFormField: (id: string) => void;
   reorderFormFields: (fromIndex: number, toIndex: number) => void;
   setWorkflowId: (workflowId: string) => void;
+  setWorkspaceId: (workspaceId: string) => void;
   setGmailConnection: (email: string) => void;
   setCalendlyLink: (link: string) => void;
   setSchedulingPreference: (type: 'CALENDLY' | 'GOOGLE_MEET') => void;
@@ -90,6 +92,7 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       formFields: [],
       workflowId: null,
+      workspaceId: null,
 
       gmailConnected: false,
       gmailEmail: null,
@@ -165,6 +168,8 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       setWorkflowId: (workflowId) => set({ workflowId }),
 
+      setWorkspaceId: (workspaceId) => set({ workspaceId }),
+
       setGmailConnection: (email) =>
         set({
           gmailConnected: true,
@@ -227,6 +232,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           },
           formFields: [],
           workflowId: null,
+          workspaceId: null,
           gmailConnected: false,
           gmailEmail: null,
           calendlyLink: null,

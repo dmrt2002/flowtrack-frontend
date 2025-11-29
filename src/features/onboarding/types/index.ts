@@ -184,6 +184,7 @@ export interface SimulationResponse {
 
 export interface ActivateWorkflowResponse {
   workflowId: string;
+  publicFormUrl: string;
   status: 'active';
   activatedAt: string;
 }

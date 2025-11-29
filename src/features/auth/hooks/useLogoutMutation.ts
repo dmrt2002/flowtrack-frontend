@@ -14,25 +14,41 @@ export function useLogoutMutation() {
   const { clearUser } = useCurrentUser();
 
   return useMutation({
-    mutationFn: () => {
-      // Backend will read refreshToken from cookie
+    mutationFn: async () => {
+      // Backend will clear the accessToken cookie
       return logout();
     },
     retry: false,
     onSuccess: () => {
+      // Clear local state
       clearUser();
       clearAuthCookies();
-      toast.success('Logged out successfully');
-      router.push('/login');
+
+      // Show success message
+      toast.success('Logged out successfully', {
+        duration: 2000,
+      });
+
+      // Wait a moment for toast to be visible, then redirect
+      setTimeout(() => {
+        router.push('/login');
+      }, 500);
     },
     onError: (error: any) => {
       // Even if logout fails, clear local state and redirect
       clearUser();
       clearAuthCookies();
-      const errorMessage =
-        error?.response?.data?.message || 'Logout completed with errors';
-      toast.error(errorMessage);
-      router.push('/login');
+
+      const errorMessage = error?.response?.data?.message || 'Logout completed';
+
+      // Show error but still redirect
+      toast.error(errorMessage, {
+        duration: 2000,
+      });
+
+      setTimeout(() => {
+        router.push('/login');
+      }, 500);
     },
   });
 }

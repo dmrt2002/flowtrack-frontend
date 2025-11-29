@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -16,6 +16,13 @@ interface ConditionInputProps {
 
 // Valid operators for conditions
 const VALID_OPERATORS = ['>', '<', '>=', '<=', '==', '!='];
+
+type SuggestionItem = {
+  id: string;
+  label: string;
+  value: string;
+  category: 'variable' | 'operator';
+};
 
 // Validate condition syntax
 const validateCondition = (
@@ -75,8 +82,30 @@ export function ConditionInput({
   const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Create variable suggestions from available fields
-  const variableSuggestions = availableFields.map((field) => `{${field}}`);
+  const variableSuggestions: SuggestionItem[] = useMemo(
+    () =>
+      availableFields.map((field) => ({
+        id: `var-${field}`,
+        label: `{${field}}`,
+        value: `{${field}}`,
+        category: 'variable' as const,
+      })),
+    [availableFields]
+  );
+  const operatorSuggestions: SuggestionItem[] = useMemo(
+    () =>
+      VALID_OPERATORS.map((op) => ({
+        id: `op-${op}`,
+        label: op,
+        value: ` ${op} `,
+        category: 'operator' as const,
+      })),
+    []
+  );
+  const suggestionItems: SuggestionItem[] = useMemo(
+    () => [...variableSuggestions, ...operatorSuggestions],
+    [variableSuggestions, operatorSuggestions]
+  );
 
   // Validate condition on change
   useEffect(() => {
@@ -88,9 +117,9 @@ export function ConditionInput({
     }
   }, [value]);
 
-  // Insert variable at cursor position
-  const insertVariable = useCallback(
-    (variable: string) => {
+  // Insert suggestion token at cursor position
+  const insertToken = useCallback(
+    (tokenValue: string) => {
       if (!inputRef.current) return;
 
       const input = inputRef.current;
@@ -98,14 +127,14 @@ export function ConditionInput({
       const textBefore = value.substring(0, cursorPos);
       const textAfter = value.substring(cursorPos);
 
-      const newValue = textBefore + variable + textAfter;
+      const newValue = textBefore + tokenValue + textAfter;
       onChange(newValue);
       setShowDropdown(false);
 
       // Set cursor position after the inserted variable
       setTimeout(() => {
         if (inputRef.current) {
-          const newCursorPos = cursorPos + variable.length;
+          const newCursorPos = cursorPos + tokenValue.length;
           inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
           inputRef.current.focus();
         }
@@ -129,8 +158,7 @@ export function ConditionInput({
           );
           return;
         }
-
-        if (inputRef.current && variableSuggestions.length > 0) {
+        if (inputRef.current && suggestionItems.length > 0) {
           const input = inputRef.current;
           const rect = input.getBoundingClientRect();
           const cursorPos = input.selectionStart || 0;
@@ -173,20 +201,20 @@ export function ConditionInput({
         if (e.key === 'ArrowDown') {
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev < variableSuggestions.length - 1 ? prev + 1 : 0
+            prev < suggestionItems.length - 1 ? prev + 1 : 0
           );
           return;
         }
         if (e.key === 'ArrowUp') {
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev > 0 ? prev - 1 : variableSuggestions.length - 1
+            prev > 0 ? prev - 1 : suggestionItems.length - 1
           );
           return;
         }
         if (e.key === 'Enter') {
           e.preventDefault();
-          insertVariable(variableSuggestions[selectedIndex]);
+          insertToken(suggestionItems[selectedIndex].value);
           return;
         }
         if (e.key === 'Escape') {
@@ -196,15 +224,22 @@ export function ConditionInput({
         }
       }
     },
-    [showDropdown, selectedIndex, variableSuggestions, value, insertVariable]
+    [
+      showDropdown,
+      selectedIndex,
+      value,
+      suggestionItems,
+      insertToken,
+      variableSuggestions.length,
+    ]
   );
 
-  // Handle variable selection from dropdown
-  const handleVariableSelect = useCallback(
-    (variable: string) => {
-      insertVariable(variable);
+  // Handle suggestion selection
+  const handleSuggestionSelect = useCallback(
+    (item: SuggestionItem) => {
+      insertToken(item.value);
     },
-    [insertVariable]
+    [insertToken]
   );
 
   // Scroll selected item into view when selectedIndex changes
@@ -220,9 +255,9 @@ export function ConditionInput({
   // Initialize item refs array when dropdown opens
   useEffect(() => {
     if (showDropdown) {
-      itemRefs.current = itemRefs.current.slice(0, variableSuggestions.length);
+      itemRefs.current = itemRefs.current.slice(0, suggestionItems.length);
     }
-  }, [showDropdown, variableSuggestions.length]);
+  }, [showDropdown, suggestionItems.length]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -272,6 +307,20 @@ export function ConditionInput({
 
   const conditionPreview = parseCondition();
 
+  const handleBeforeInput = useCallback(
+    (event: React.FormEvent<HTMLInputElement>) => {
+      const nativeEvent = event.nativeEvent as InputEvent | undefined;
+      const data = nativeEvent?.data;
+      if (!data) return;
+
+      if (/[{}<>!=A-Za-z]/.test(data)) {
+        event.preventDefault();
+        toast.info('Use Shift + Space to insert variables and operators.');
+      }
+    },
+    []
+  );
+
   return (
     <div className="space-y-2">
       <div className="relative">
@@ -288,44 +337,82 @@ export function ConditionInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onBeforeInput={handleBeforeInput}
           required={required}
         />
 
-        {/* Variable Dropdown */}
-        {showDropdown && variableSuggestions.length > 0 && (
+        {/* Suggestion Dropdown */}
+        {showDropdown && suggestionItems.length > 0 && (
           <div
             ref={dropdownRef}
-            className="fixed z-50 max-w-[300px] min-w-[200px] rounded-md border bg-white shadow-md"
+            className="fixed z-50 max-w-[320px] min-w-[240px] rounded-md border bg-white shadow-md"
             style={{
               top: `${cursorPosition.top}px`,
               left: `${cursorPosition.left}px`,
             }}
           >
             <div className="p-1">
-              <div className="text-muted-foreground px-2 py-1.5 text-xs font-semibold">
-                Available Fields
-              </div>
-              <div className="max-h-[200px] overflow-auto">
-                {variableSuggestions.map((variable, index) => (
-                  <button
-                    key={variable}
-                    ref={(el) => {
-                      itemRefs.current[index] = el;
-                    }}
-                    type="button"
-                    className={cn(
-                      'w-full rounded-sm px-2 py-1.5 text-left text-sm transition-colors',
-                      'hover:text-foreground hover:bg-blue-50',
-                      'focus:text-foreground focus:bg-blue-50 focus:outline-none',
-                      index === selectedIndex && 'text-foreground bg-blue-100'
-                    )}
-                    onClick={() => handleVariableSelect(variable)}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                  >
-                    <span className="font-mono">{variable}</span>
-                  </button>
-                ))}
-              </div>
+              {variableSuggestions.length > 0 && (
+                <>
+                  <div className="text-muted-foreground px-2 py-1.5 text-xs font-semibold">
+                    Available Fields
+                  </div>
+                  <div className="max-h-[160px] overflow-auto">
+                    {variableSuggestions.map((variable, index) => (
+                      <button
+                        key={variable.id}
+                        ref={(el) => {
+                          itemRefs.current[index] = el;
+                        }}
+                        type="button"
+                        className={cn(
+                          'w-full rounded-sm px-2 py-1.5 text-left text-sm transition-colors',
+                          'hover:text-foreground hover:bg-blue-50',
+                          'focus:text-foreground focus:bg-blue-50 focus:outline-none',
+                          index === selectedIndex &&
+                            'text-foreground bg-blue-100'
+                        )}
+                        onClick={() => handleSuggestionSelect(variable)}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                      >
+                        <span className="font-mono">{variable.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {operatorSuggestions.length > 0 && (
+                <>
+                  <div className="text-muted-foreground border-t px-2 py-1.5 text-xs font-semibold">
+                    Operators
+                  </div>
+                  <div className="max-h-[120px] overflow-auto">
+                    {operatorSuggestions.map((operator, index) => {
+                      const globalIndex = variableSuggestions.length + index;
+                      return (
+                        <button
+                          key={operator.id}
+                          ref={(el) => {
+                            itemRefs.current[globalIndex] = el;
+                          }}
+                          type="button"
+                          className={cn(
+                            'w-full rounded-sm px-2 py-1.5 text-left text-sm transition-colors',
+                            'hover:text-foreground hover:bg-blue-50',
+                            'focus:text-foreground focus:bg-blue-50 focus:outline-none',
+                            globalIndex === selectedIndex &&
+                              'text-foreground bg-blue-100'
+                          )}
+                          onClick={() => handleSuggestionSelect(operator)}
+                          onMouseEnter={() => setSelectedIndex(globalIndex)}
+                        >
+                          <span className="font-mono">{operator.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
               <div className="text-muted-foreground border-t px-2 py-1.5 text-xs">
                 Press Enter to select, Esc to close
               </div>
@@ -353,19 +440,27 @@ export function ConditionInput({
         </div>
       )}
 
-      {/* Available Variables Display (like email body) */}
+      {/* Available Variables Display */}
       {availableFields.length > 0 && (
         <div className="bg-muted/50 rounded-md p-3">
           <p className="text-muted-foreground mb-2 text-xs font-medium">
             Available Variables:
           </p>
           <div className="flex flex-wrap gap-2">
-            {variableSuggestions.map((variable, index) => (
+            {variableSuggestions.map((variable) => (
               <span
-                key={index}
+                key={variable.id}
                 className="border-border bg-background text-foreground rounded-md border px-2 py-1 font-mono text-xs"
               >
-                {variable}
+                {variable.label}
+              </span>
+            ))}
+            {operatorSuggestions.map((operator) => (
+              <span
+                key={operator.id}
+                className="border-border bg-background text-foreground rounded-md border px-2 py-1 font-mono text-xs"
+              >
+                {operator.label}
               </span>
             ))}
           </div>
@@ -374,7 +469,7 @@ export function ConditionInput({
             <kbd className="border-border bg-background rounded border px-1.5 py-0.5 font-mono">
               Shift + Space
             </kbd>{' '}
-            to insert variables
+            to insert variables & operators
           </p>
         </div>
       )}
