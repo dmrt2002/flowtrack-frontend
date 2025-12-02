@@ -29,6 +29,10 @@ interface OnboardingState {
   formFields: FormField[];
   workflowId: string | null;
   workspaceId: string | null;
+  formHeader: string | null;
+  formHeaderRich: any | null;
+  formDescription: string | null;
+  formDescriptionRich: any | null;
 
   // Step 2.5: Integrations (Gmail + Scheduling)
   gmailConnected: boolean;
@@ -64,6 +68,8 @@ interface OnboardingState {
   reorderFormFields: (fromIndex: number, toIndex: number) => void;
   setWorkflowId: (workflowId: string) => void;
   setWorkspaceId: (workspaceId: string) => void;
+  setFormHeader: (header: string | null, rich?: any) => void;
+  setFormDescription: (description: string | null, rich?: any) => void;
   setGmailConnection: (email: string) => void;
   setCalendlyLink: (link: string) => void;
   setSchedulingPreference: (type: 'CALENDLY' | 'GOOGLE_MEET') => void;
@@ -93,6 +99,10 @@ export const useOnboardingStore = create<OnboardingState>()(
       formFields: [],
       workflowId: null,
       workspaceId: null,
+      formHeader: null,
+      formHeaderRich: null,
+      formDescription: null,
+      formDescriptionRich: null,
 
       gmailConnected: false,
       gmailEmail: null,
@@ -170,6 +180,15 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       setWorkspaceId: (workspaceId) => set({ workspaceId }),
 
+      setFormHeader: (header, rich) =>
+        set({ formHeader: header, formHeaderRich: rich || null }),
+
+      setFormDescription: (description, rich) =>
+        set({
+          formDescription: description,
+          formDescriptionRich: rich || null,
+        }),
+
       setGmailConnection: (email) =>
         set({
           gmailConnected: true,
@@ -233,6 +252,10 @@ export const useOnboardingStore = create<OnboardingState>()(
           formFields: [],
           workflowId: null,
           workspaceId: null,
+          formHeader: null,
+          formHeaderRich: null,
+          formDescription: null,
+          formDescriptionRich: null,
           gmailConnected: false,
           gmailEmail: null,
           calendlyLink: null,

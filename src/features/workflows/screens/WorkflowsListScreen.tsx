@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,13 +12,17 @@ import { useCurrentUser } from '@/store/currentUserStore';
 
 export function WorkflowsListScreen() {
   const { currentUser, isLoading: isLoadingUser } = useCurrentUser();
-  const workspaceId = currentUser?.workspaces?.[0]?.id || '';
+  const workspaceId = currentUser?.workspaces?.[0]?.id || null;
 
-  console.log('WorkflowsListScreen:', {
-    currentUser,
-    workspaceId,
-    isLoadingUser,
-  });
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 WorkflowsListScreen - workspaceId changed:', {
+      workspaceId,
+      hasCurrentUser: !!currentUser,
+      workspaces: currentUser?.workspaces,
+      isLoadingUser,
+    });
+  }, [workspaceId, currentUser, isLoadingUser]);
 
   const { data: workflows, isLoading, error } = useWorkflows(workspaceId);
 

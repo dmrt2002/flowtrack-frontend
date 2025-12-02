@@ -43,9 +43,30 @@ export interface FormField {
   updatedAt?: string;
 }
 
+export interface FormFieldPayload {
+  fieldKey: string;
+  label: string;
+  fieldType: FormFieldType;
+  placeholder?: string;
+  helpText?: string;
+  isRequired: boolean;
+  isDefault?: boolean;
+  options?: FormFieldOption[];
+  validationRules?: FormFieldValidationRules;
+  displayOrder: number;
+}
+
 export interface FormFieldsPayload {
   workflowId: string;
-  formFields: FormField[];
+  formFields: FormFieldPayload[];
+  settings?: {
+    formHeader?: string | null;
+    formHeaderRich?: any | null;
+    formDescription?: string | null;
+    formDescriptionRich?: any | null;
+    showFormHeader?: boolean;
+    showFormDescription?: boolean;
+  };
 }
 
 export interface FormFieldsResponse {

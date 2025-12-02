@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Menu,
-  Search,
-  Bell,
-  Copy,
-  ExternalLink,
-  Check,
-  LogOut,
-} from 'lucide-react';
+import { Menu, Bell, Copy, ExternalLink, Check, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useCurrentUser } from '@/store/currentUserStore';
@@ -26,15 +18,27 @@ import {
 
 interface TopBarProps {
   collapsed: boolean;
-  publicFormUrl?: string;
 }
 
-export function TopBar({ collapsed, publicFormUrl }: TopBarProps) {
+export function TopBar({ collapsed }: TopBarProps) {
   const { openMobile } = useSidebarStore();
   const { currentUser } = useCurrentUser();
   const [copied, setCopied] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const logoutMutation = useLogoutMutation();
+
+  // Get public form URL from current user (provided by /me API)
+  const publicFormUrl = currentUser?.publicFormUrl;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 TopBar - Current User State:', {
+      hasCurrentUser: !!currentUser,
+      publicFormUrl: currentUser?.publicFormUrl,
+      workspaces: currentUser?.workspaces,
+      email: currentUser?.email,
+    });
+  }, [currentUser]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -118,17 +122,8 @@ export function TopBar({ collapsed, publicFormUrl }: TopBarProps) {
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Search */}
-        <div className="hidden max-w-md flex-1 sm:block">
-          <div className="relative">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2 pr-4 pl-10 text-[14px] transition-all focus:border-transparent focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-          </div>
-        </div>
+        {/* Spacer */}
+        <div className="flex-1" />
 
         {/* Public Form Link - Compact Version */}
         {publicFormUrl && (

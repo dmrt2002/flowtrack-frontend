@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Settings, Workflow } from 'lucide-react';
+import { Home, Users, Settings, Workflow, Flame } from 'lucide-react';
 
 interface NavItem {
   label: string;
@@ -14,6 +14,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard-home', icon: Home },
   { label: 'Leads', href: '/leads', icon: Users },
+  { label: 'Hotbox', href: '/hotbox', icon: Flame },
   { label: 'Workflows', href: '/workflows', icon: Workflow },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];

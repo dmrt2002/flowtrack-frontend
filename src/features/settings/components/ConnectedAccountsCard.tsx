@@ -161,7 +161,6 @@ export function ConnectedAccountsCard() {
         </div>
         <div className="space-y-4">
           <div className="h-24 animate-pulse rounded-xl bg-neutral-100" />
-          <div className="h-24 animate-pulse rounded-xl bg-neutral-100" />
         </div>
       </div>
     );
@@ -175,7 +174,7 @@ export function ConnectedAccountsCard() {
             Connected Accounts
           </h3>
           <p className="mt-1 text-sm text-neutral-600">
-            Manage your connected calendar and scheduling accounts
+            Connect Calendly to include booking links in your automated emails
           </p>
         </div>
 
@@ -349,7 +348,7 @@ export function ConnectedAccountsCard() {
             <div className="py-8 text-center">
               <p className="text-neutral-600">No connected accounts</p>
               <p className="mt-1 text-sm text-neutral-500">
-                Connect accounts to enable calendar integrations
+                Connect Calendly to enable calendar integrations
               </p>
             </div>
           )}

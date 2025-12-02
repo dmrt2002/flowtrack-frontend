@@ -8,13 +8,10 @@ import { useEffect, useState } from 'react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  publicFormUrl?: string;
+  publicFormUrl?: string; // Deprecated: TopBar now fetches this internally
 }
 
-export function DashboardLayout({
-  children,
-  publicFormUrl,
-}: DashboardLayoutProps) {
+export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isCollapsed } = useSidebarStore();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -39,7 +36,7 @@ export function DashboardLayout({
       <MobileSidebar />
 
       {/* Top Bar */}
-      <TopBar collapsed={isCollapsed} publicFormUrl={publicFormUrl} />
+      <TopBar collapsed={isCollapsed} />
 
       {/* Main Content */}
       <motion.main

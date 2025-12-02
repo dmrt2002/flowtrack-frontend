@@ -24,7 +24,7 @@ export interface ChangePasswordDto {
 // Connected Accounts Types
 export interface ConnectedAccount {
   id: string;
-  providerType: 'GOOGLE_CALENDAR' | 'OUTLOOK_CALENDAR' | 'CALENDLY' | 'CAL_COM';
+  providerType: 'CALENDLY' | 'CAL_COM' | 'GOOGLE_CALENDAR' | 'OUTLOOK_CALENDAR';
   providerEmail: string;
   status: 'active' | 'expired' | 'revoked';
   createdAt: string;

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/features/dashboard/components/DashboardLayout';
@@ -23,7 +22,17 @@ import type { LeadFilters, LeadView, LeadStatus } from '../types/lead';
 
 export function LeadsListScreen() {
   const { currentUser, isLoading: isLoadingUser } = useCurrentUser();
-  const workspaceId = currentUser?.workspaces?.[0]?.id || '';
+  const workspaceId = currentUser?.workspaces?.[0]?.id || null;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 LeadsListScreen - workspaceId changed:', {
+      workspaceId,
+      hasCurrentUser: !!currentUser,
+      workspaces: currentUser?.workspaces,
+      isLoadingUser,
+    });
+  }, [workspaceId, currentUser, isLoadingUser]);
 
   const [view, setView] = useState<LeadView>('table');
   const [page, setPage] = useState(1);
@@ -32,9 +41,29 @@ export function LeadsListScreen() {
     sortBy: 'createdAt',
     sortOrder: 'desc',
   });
+  const [searchInput, setSearchInput] = useState<string>('');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
-  // Fetch data
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((prev) => {
+        // Only update if search actually changed to avoid unnecessary updates
+        if (prev.search !== (searchInput || undefined)) {
+          return {
+            ...prev,
+            search: searchInput || undefined,
+          };
+        }
+        return prev;
+      });
+      setPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Fetch data - only fetch when user is loaded and workspaceId is available
   const {
     data: leadsData,
     isLoading,
@@ -72,6 +101,7 @@ export function LeadsListScreen() {
 
   const handleDeleteLead = async (leadId: string) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
+    if (!workspaceId) return;
 
     try {
       await deleteMutation.mutateAsync({ workspaceId, leadId });
@@ -81,6 +111,8 @@ export function LeadsListScreen() {
   };
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
+    if (!workspaceId) return;
+
     try {
       await updateStatusMutation.mutateAsync({
         workspaceId,
@@ -171,36 +203,56 @@ export function LeadsListScreen() {
             />
 
             {/* Filters */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.6,
-                ease: [0.16, 1, 0.3, 1],
-                delay: 0.2,
-              }}
-            >
-              <LeadFiltersBar filters={filters} onFiltersChange={setFilters} />
-            </motion.div>
+            <div>
+              <LeadFiltersBar
+                filters={{ ...filters, search: searchInput }}
+                onFiltersChange={(newFilters) => {
+                  // Handle search separately for debouncing
+                  if (newFilters.search !== undefined) {
+                    setSearchInput(newFilters.search || '');
+                  } else if (searchInput) {
+                    // If search is not in newFilters but searchInput has value, clear it
+                    // This handles the "Clear Filters" case
+                    setSearchInput('');
+                  }
+                  // Handle other filters immediately
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  const { search, ...otherFilters } = newFilters;
+                  setFilters((prev) => ({
+                    ...prev,
+                    ...otherFilters,
+                  }));
+                  setPage(1); // Reset to first page on filter change
+                }}
+              />
+            </div>
 
             {/* Leads Table View */}
             {view === 'table' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.6,
-                  ease: [0.16, 1, 0.3, 1],
-                  delay: 0.3,
-                }}
-              >
+              <div>
                 <LeadsTable
                   leads={leads}
                   total={total}
                   page={page}
                   limit={limit}
                   filters={filters}
-                  onFiltersChange={setFilters}
+                  onFiltersChange={(newFilters) => {
+                    // Handle search separately for debouncing
+                    if (
+                      newFilters.search !== undefined &&
+                      newFilters.search !== searchInput
+                    ) {
+                      setSearchInput(newFilters.search || '');
+                    }
+                    // Handle other filters immediately
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { search, ...otherFilters } = newFilters;
+                    setFilters((prev) => ({
+                      ...prev,
+                      ...otherFilters,
+                    }));
+                    setPage(1);
+                  }}
                   onPageChange={setPage}
                   onLimitChange={(newLimit) => {
                     setLimit(newLimit);
@@ -210,32 +262,24 @@ export function LeadsListScreen() {
                   onEditLead={handleEditLead}
                   onDeleteLead={handleDeleteLead}
                 />
-              </motion.div>
+              </div>
             )}
 
             {/* Leads Kanban View */}
             {view === 'kanban' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.6,
-                  ease: [0.16, 1, 0.3, 1],
-                  delay: 0.3,
-                }}
-              >
+              <div>
                 <LeadsKanban
                   columns={kanbanColumns}
                   onStatusChange={handleStatusChange}
                   onViewLead={handleViewLead}
                 />
-              </motion.div>
+              </div>
             )}
           </>
         )}
 
         {/* Lead Detail Modal */}
-        {selectedLeadData && (
+        {selectedLeadData && workspaceId && (
           <LeadDetailModal
             lead={selectedLeadData}
             workspaceId={workspaceId}

@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/store/currentUserStore';
@@ -6,6 +6,7 @@ import { signIn, SignInData } from '../services';
 
 export function useSignInMutation() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { setUser } = useCurrentUser();
 
   return useMutation({
@@ -14,6 +15,10 @@ export function useSignInMutation() {
     onSuccess: (data) => {
       // Update global user store (backend already set the cookie)
       setUser(data.user);
+
+      // Invalidate current user query to trigger fresh /me API call
+      // This ensures user data is fully synced after login
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
 
       toast.success('Sign in successful!');
 

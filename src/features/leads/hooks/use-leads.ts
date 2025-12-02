@@ -19,9 +19,13 @@ import type {
 export function useLeads(workspaceId: string | null, params?: LeadsListParams) {
   return useQuery({
     queryKey: ['leads', workspaceId, params],
-    queryFn: () => getLeads(workspaceId!, params),
+    queryFn: () => {
+      console.log('📡 useLeads - Fetching leads for workspaceId:', workspaceId);
+      return getLeads(workspaceId!, params);
+    },
     enabled: !!workspaceId,
     retry: false,
+    refetchOnMount: true,
   });
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rocket, Check, Copy, ExternalLink, X } from 'lucide-react';
+import { Rocket, Check, Copy, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -72,13 +72,6 @@ export function LaunchpadModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="gap-0 overflow-hidden border-none bg-white p-0 shadow-[0_20px_60px_rgba(0,0,0,0.15)] sm:max-w-[520px]">
         {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 rounded-md p-2 text-neutral-400 transition-colors hover:bg-neutral-50 hover:text-neutral-600"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </button>
 
         {/* Modal Content */}
         <div className="px-8 py-10 sm:px-10 sm:py-12">
@@ -186,12 +179,6 @@ export function LaunchpadModal({
 
           {/* Share Hints */}
           {/* Command Center CTA */}
-          <Button
-            onClick={handleGoToDashboard}
-            className="h-12 w-full bg-gradient-to-r from-[#4F46E5] to-[#7c3aed] text-[15px] font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(79,70,229,0.25)]"
-          >
-            Go to Command Center →
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

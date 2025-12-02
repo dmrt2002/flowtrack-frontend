@@ -2,12 +2,32 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Workflow, FileText, BarChart3, Code2 } from 'lucide-react';
+import {
+  Menu,
+  X,
+  Workflow,
+  FileText,
+  BarChart3,
+  Code2,
+  Flame,
+} from 'lucide-react';
 
 export function QuickNav() {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
+    {
+      href: '/dashboard-home',
+      label: 'Dashboard',
+      icon: BarChart3,
+      description: 'Main dashboard',
+    },
+    {
+      href: '/hotbox',
+      label: 'Hotbox',
+      icon: Flame,
+      description: 'Manage email conversations',
+    },
     {
       href: '/workflows',
       label: 'Workflows',
@@ -25,12 +45,6 @@ export function QuickNav() {
       label: 'Forms Demo',
       icon: Code2,
       description: 'Feature showcase',
-    },
-    {
-      href: '/dashboard-home',
-      label: 'Dashboard',
-      icon: BarChart3,
-      description: 'Main dashboard',
     },
   ];
 

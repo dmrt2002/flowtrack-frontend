@@ -32,6 +32,8 @@ export const mainUrl = {
   // OAuth endpoints
   oauthGmailInitiate: '/api/v1/oauth/gmail/initiate',
   oauthGmailCallback: '/api/v1/oauth/gmail/callback',
+  gmailConnection: (workspaceId: string) =>
+    `/api/v1/oauth/gmail/connection/${workspaceId}`,
 
   // Calendar endpoints
   calendarAvailability: '/api/v1/calendar/availability',
@@ -92,6 +94,26 @@ export const mainUrl = {
     `/api/v1/workspaces/${workspaceId}/leads/${leadId}`,
   exportLeads: (workspaceId: string) =>
     `/api/v1/workspaces/${workspaceId}/leads/export`,
+
+  // Sent emails endpoints
+  getWorkspaceEmails: (workspaceId: string) =>
+    `/api/v1/sent-emails/workspaces/${workspaceId}`,
+  getLeadEmails: (workspaceId: string, leadId: string) =>
+    `/api/v1/sent-emails/workspaces/${workspaceId}/leads/${leadId}`,
+  getSentEmailById: (emailId: string, workspaceId: string) =>
+    `/api/v1/sent-emails/${emailId}/workspaces/${workspaceId}`,
+  getEmailStatistics: (workspaceId: string) =>
+    `/api/v1/sent-emails/workspaces/${workspaceId}/statistics`,
+
+  // Hotbox (Email Relay) endpoints
+  getHotboxNeedsReply: (workspaceId: string) =>
+    `/api/v1/workspaces/${workspaceId}/hotbox/needs-reply`,
+  getHotboxSent: (workspaceId: string) =>
+    `/api/v1/workspaces/${workspaceId}/hotbox/sent`,
+  getLeadMessages: (workspaceId: string, leadId: string) =>
+    `/api/v1/workspaces/${workspaceId}/leads/${leadId}/messages`,
+  sendMessageToLead: (workspaceId: string, leadId: string) =>
+    `/api/v1/workspaces/${workspaceId}/leads/${leadId}/messages/send`,
 
   // User/Settings endpoints
   getUserProfile: '/api/v1/user/profile',

@@ -21,6 +21,7 @@ export type User = {
   clerkUserId?: string | null;
   hasCompletedOnboarding?: boolean;
   workspaces?: Workspace[];
+  publicFormUrl?: string | null;
   createdAt: string;
   updatedAt?: string;
 };
