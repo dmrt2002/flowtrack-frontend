@@ -4,12 +4,13 @@ import { DashboardLayout } from '@/features/dashboard/components/DashboardLayout
 import { ProfileSection } from './ProfileSection';
 import { BillingSection } from './BillingSection';
 import { TeamSection } from './TeamSection';
+import { PitchConfigSettings } from './pitch-config/PitchConfigSettings';
 
 interface SettingsScreenProps {
   workspaceId: string;
 }
 
-type TabValue = 'profile' | 'billing' | 'team';
+type TabValue = 'profile' | 'billing' | 'team' | 'pitch';
 
 export function SettingsScreen({ workspaceId }: SettingsScreenProps) {
   const [activeTab, setActiveTab] = useState<TabValue>('profile');
@@ -18,6 +19,7 @@ export function SettingsScreen({ workspaceId }: SettingsScreenProps) {
     { value: 'profile', label: 'Profile' },
     { value: 'billing', label: 'Billing' },
     { value: 'team', label: 'Team' },
+    { value: 'pitch', label: 'Sales Pitch' },
   ];
 
   return (
@@ -76,6 +78,7 @@ export function SettingsScreen({ workspaceId }: SettingsScreenProps) {
             <BillingSection workspaceId={workspaceId} />
           )}
           {activeTab === 'team' && <TeamSection workspaceId={workspaceId} />}
+          {activeTab === 'pitch' && <PitchConfigSettings />}
         </motion.div>
       </div>
     </DashboardLayout>

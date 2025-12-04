@@ -135,7 +135,7 @@ export function IntegrationsScreen() {
   };
 
   const handleBack = () => {
-    router.push('/onboarding/form-builder');
+    router.push('/onboarding/company-enrichment');
   };
 
   return (
@@ -153,7 +153,7 @@ export function IntegrationsScreen() {
           </button>
           <div className="relative">
             <div className="text-muted-foreground absolute top-0 right-0 text-xs font-medium sm:text-sm">
-              Step 2 of 4
+              Step 3 of 4
             </div>
             <h1 className="text-foreground mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
               Calendar Integration

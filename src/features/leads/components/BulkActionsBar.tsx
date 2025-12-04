@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Tag, Download, Trash2 } from 'lucide-react';
+import { X, Tag, Download, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -13,11 +13,19 @@ import {
 
 interface BulkActionsBarProps {
   selectedCount: number;
+  selectedLeadIds?: string[];
   onClearSelection: () => void;
   onChangeStatus: (status: string) => void;
   onAddTags: (tags: string[]) => void;
   onExport: () => void;
   onDelete: () => void;
+  onGeneratePitches?: (leadIds: string[]) => void;
+  isGeneratingPitches?: boolean;
+  pitchProgress?: {
+    total: number;
+    completed: number;
+    failed: number;
+  };
 }
 
 const LEAD_STATUSES = [
@@ -32,10 +40,14 @@ const LEAD_STATUSES = [
 
 export function BulkActionsBar({
   selectedCount,
+  selectedLeadIds = [],
   onClearSelection,
   onChangeStatus,
   onExport,
   onDelete,
+  onGeneratePitches,
+  isGeneratingPitches = false,
+  pitchProgress,
 }: BulkActionsBarProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
@@ -47,6 +59,16 @@ export function BulkActionsBar({
     // Reset after action
     setTimeout(() => setSelectedStatus(''), 100);
   };
+
+  const handleGeneratePitches = () => {
+    if (onGeneratePitches && selectedLeadIds.length > 0) {
+      onGeneratePitches(selectedLeadIds);
+    }
+  };
+
+  const progressPercentage = pitchProgress
+    ? Math.round((pitchProgress.completed / pitchProgress.total) * 100)
+    : 0;
 
   return (
     <div className="sticky top-0 z-10 rounded-xl border border-indigo-700 bg-indigo-600 p-4 shadow-lg">
@@ -81,10 +103,40 @@ export function BulkActionsBar({
           </Select>
         </div>
 
+        {/* Progress indicator */}
+        {isGeneratingPitches && pitchProgress && (
+          <>
+            <div className="h-6 w-px bg-indigo-400" />
+            <div className="flex items-center gap-2 text-white">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">
+                Generating pitches: {pitchProgress.completed}/
+                {pitchProgress.total} ({progressPercentage}%)
+              </span>
+            </div>
+          </>
+        )}
+
         <div className="flex-1" />
 
         {/* Action buttons */}
         <div className="flex items-center gap-2">
+          {onGeneratePitches && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleGeneratePitches}
+              disabled={isGeneratingPitches || selectedLeadIds.length === 0}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700"
+            >
+              {isGeneratingPitches ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
+              Generate Pitches
+            </Button>
+          )}
           <Button
             variant="secondary"
             size="sm"

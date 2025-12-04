@@ -14,7 +14,7 @@ const DEFAULT_FIELD_KEYS = ['name', 'email', 'companyName'];
 
 export function useFormFieldsMutation() {
   const router = useRouter();
-  const { setFormFields, completeStep } = useOnboardingStore();
+  const { setFormFields, completeStep, setCompanyName } = useOnboardingStore();
 
   return useMutation({
     mutationFn: (data: FormFieldsPayload) =>
@@ -22,6 +22,14 @@ export function useFormFieldsMutation() {
     retry: false,
     onSuccess: (response) => {
       const { data } = response.data;
+
+      // Extract company name from form fields if available
+      const companyNameField = data.formFields.find(
+        (field) => field.fieldKey === 'companyName'
+      );
+      if (companyNameField) {
+        setCompanyName(companyNameField.label || 'Company Name');
+      }
 
       // Filter out default fields to prevent duplication
       // Default fields are always shown separately in the UI
@@ -31,9 +39,9 @@ export function useFormFieldsMutation() {
       );
 
       setFormFields(customFieldsOnly);
-      completeStep(2);
+      completeStep(1);
       toast.success('Form fields saved!');
-      router.push('/onboarding/integrations');
+      router.push('/onboarding/company-enrichment');
     },
     onError: (error: unknown) => {
       const errorMessage =

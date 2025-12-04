@@ -9,6 +9,7 @@ import type {
   ConfigSchema,
 } from '../types';
 import type { FormField } from '../types/form-fields';
+import type { EnrichedCompanyData } from '@/types/onboarding-scraper';
 
 interface OnboardingState {
   // Step tracking
@@ -33,6 +34,10 @@ interface OnboardingState {
   formHeaderRich: any | null;
   formDescription: string | null;
   formDescriptionRich: any | null;
+  companyName: string | null;
+
+  // Step 2.1: Company Enrichment (NEW)
+  enrichedCompany: EnrichedCompanyData | null;
 
   // Step 2.5: Integrations (Gmail + Scheduling)
   gmailConnected: boolean;
@@ -70,6 +75,8 @@ interface OnboardingState {
   setWorkspaceId: (workspaceId: string) => void;
   setFormHeader: (header: string | null, rich?: any) => void;
   setFormDescription: (description: string | null, rich?: any) => void;
+  setCompanyName: (name: string | null) => void;
+  setEnrichedCompany: (data: EnrichedCompanyData | null) => void;
   setGmailConnection: (email: string) => void;
   setCalendlyLink: (link: string) => void;
   setSchedulingPreference: (type: 'CALENDLY' | 'GOOGLE_MEET') => void;
@@ -103,6 +110,9 @@ export const useOnboardingStore = create<OnboardingState>()(
       formHeaderRich: null,
       formDescription: null,
       formDescriptionRich: null,
+      companyName: null,
+
+      enrichedCompany: null,
 
       gmailConnected: false,
       gmailEmail: null,
@@ -189,6 +199,10 @@ export const useOnboardingStore = create<OnboardingState>()(
           formDescriptionRich: rich || null,
         }),
 
+      setCompanyName: (name) => set({ companyName: name }),
+
+      setEnrichedCompany: (data) => set({ enrichedCompany: data }),
+
       setGmailConnection: (email) =>
         set({
           gmailConnected: true,
@@ -256,6 +270,8 @@ export const useOnboardingStore = create<OnboardingState>()(
           formHeaderRich: null,
           formDescription: null,
           formDescriptionRich: null,
+          companyName: null,
+          enrichedCompany: null,
           gmailConnected: false,
           gmailEmail: null,
           calendlyLink: null,
@@ -276,7 +292,7 @@ export const useOnboardingStore = create<OnboardingState>()(
     }),
     {
       name: 'flowtrack-onboarding',
-      version: 4, // Incremented to clear cache (removed bookingUrl from configuration schema)
+      version: 5, // Incremented to clear cache (added enrichedCompany field)
     }
   )
 );

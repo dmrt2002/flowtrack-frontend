@@ -787,7 +787,7 @@ export function ConfigurationScreen() {
                   </p>
                 </div>
                 <div className="text-muted-foreground text-xs font-medium sm:text-sm">
-                  Step 3 of 4
+                  Step 4 of 4
                 </div>
               </div>
             </div>

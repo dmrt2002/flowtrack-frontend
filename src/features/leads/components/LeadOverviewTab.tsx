@@ -7,6 +7,7 @@ import { PersonIntelligenceCard } from './enrichment/PersonIntelligenceCard';
 import { EmailIntelligenceCard } from './enrichment/EmailIntelligenceCard';
 import { DnsInfrastructureCard } from './enrichment/DnsInfrastructureCard';
 import { WebsiteMetadataCard } from './enrichment/WebsiteMetadataCard';
+import { SalesPitchCard } from './SalesPitchCard';
 
 interface LeadOverviewTabProps {
   lead: LeadDetailResponse;
@@ -69,6 +70,13 @@ export function LeadOverviewTab({
   // Overview Tab - focus on company context + insights
   return (
     <div className="space-y-4">
+      {/* AI Sales Pitch - Top Priority */}
+      <SalesPitchCard
+        leadId={lead.id}
+        leadName={lead.name || undefined}
+        companyName={lead.enrichmentData?.company?.name || undefined}
+      />
+
       {/* Company Intelligence Summary */}
       {lead.enrichmentData?.company && (
         <div className="rounded-xl border border-neutral-200 bg-white p-5">
