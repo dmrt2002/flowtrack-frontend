@@ -55,17 +55,51 @@ export function useLeadEmails(options: UseLeadEmailsOptions) {
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (emailType) params.append('emailType', emailType);
-      if (openStatus) params.append('openStatus', openStatus);
+      // Use Message API which stores actual workflow emails
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
+      // Only get OUTBOUND messages (emails sent TO the lead)
+      params.append('direction', 'OUTBOUND');
 
-      const url = `${mainUrl.getLeadEmails(workspaceId, leadId)}?${params.toString()}`;
+      const url = `${mainUrl.getLeadMessages(workspaceId, leadId)}?${params.toString()}`;
       const response = await request.get<{
-        success: boolean;
-        data: LeadEmailsResponse;
+        data: any[];
+        total: number;
+        limit: number;
+        offset: number;
       }>(url);
-      return response.data.data;
+
+      // Transform Message API response to match expected LeadEmailsResponse structure
+      const messages = response.data.data || [];
+      return {
+        sentEmails: messages.map((msg: any) => ({
+          id: msg.id,
+          subject: msg.subject,
+          htmlBody: msg.htmlBody,
+          textBody: msg.textBody,
+          recipientEmail: msg.toEmail,
+          recipientName: msg.toName,
+          sentAt: msg.sentAt || msg.createdAt,
+          openCount: 0, // Message API doesn't track opens
+          lastOpenedAt: null,
+          deliveryStatus: 'sent',
+          emailType: 'follow_up', // Default type
+          workflow: {
+            id: '',
+            name: 'Email Sent',
+          },
+          workflowExecution: {
+            id: '',
+            status: 'completed',
+          },
+        })),
+        totalCount: response.data.total || 0,
+        limit: response.data.limit || limit,
+        offset: response.data.offset || offset,
+        hasMore:
+          (response.data.offset || 0) + messages.length <
+          (response.data.total || 0),
+      };
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
     enabled: enabled && !!workspaceId && !!leadId,

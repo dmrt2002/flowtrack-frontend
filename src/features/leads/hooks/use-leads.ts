@@ -7,6 +7,7 @@ import {
   updateLeadStatus,
   bulkUpdateLeads,
   deleteLead,
+  enrichLead,
 } from '../services/leads-api';
 import type {
   LeadsListParams,
@@ -172,6 +173,27 @@ export function useDeleteLead() {
       // Invalidate metrics
       queryClient.invalidateQueries({
         queryKey: ['leadMetrics', variables.workspaceId],
+      });
+    },
+  });
+}
+
+// Enrich lead (trigger enrichment job)
+export function useEnrichLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      workspaceId,
+      leadId,
+    }: {
+      workspaceId: string;
+      leadId: string;
+    }) => enrichLead(workspaceId, leadId),
+    onSuccess: (_data, variables) => {
+      // Invalidate lead details to refetch enrichment data
+      queryClient.invalidateQueries({
+        queryKey: ['lead', variables.workspaceId, variables.leadId],
       });
     },
   });

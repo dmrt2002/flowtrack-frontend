@@ -1,14 +1,8 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowUpDown, Eye, MoreHorizontal } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import type { Lead, LeadFilters } from '../types/lead';
 import { LEAD_STATUS_LABELS } from '../types/lead';
 import {
@@ -28,8 +22,6 @@ interface LeadsTableProps {
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
   onViewLead: (leadId: string) => void;
-  onEditLead: (leadId: string) => void;
-  onDeleteLead: (leadId: string) => void;
 }
 
 export function LeadsTable({
@@ -42,8 +34,6 @@ export function LeadsTable({
   onPageChange,
   onLimitChange,
   onViewLead,
-  onEditLead,
-  onDeleteLead,
 }: LeadsTableProps) {
   const totalPages = total > 0 ? Math.ceil(total / limit) : 1;
 
@@ -140,7 +130,6 @@ export function LeadsTable({
                     <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4" />
                   </button>
                 </th>
-                <th className="w-12 p-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -152,7 +141,8 @@ export function LeadsTable({
                 return (
                   <tr
                     key={lead.id}
-                    className="border-b border-neutral-100 transition-colors hover:bg-neutral-50"
+                    onClick={() => onViewLead(lead.id)}
+                    className="cursor-pointer border-b border-neutral-100 transition-colors hover:bg-neutral-50"
                   >
                     <td className="p-2 sm:p-3 lg:p-3">
                       <div className="flex items-center gap-2 sm:gap-3 lg:gap-3">
@@ -219,30 +209,6 @@ export function LeadsTable({
                       {formatDistanceToNow(new Date(lead.createdAt), {
                         addSuffix: true,
                       })}
-                    </td>
-                    <td className="p-2 sm:p-3 lg:p-3">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onViewLead(lead.id)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEditLead(lead.id)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => onDeleteLead(lead.id)}
-                            className="text-red-600"
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </td>
                   </tr>
                 );

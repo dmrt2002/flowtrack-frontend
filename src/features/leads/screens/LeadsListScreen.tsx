@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/features/dashboard/components/DashboardLayout';
@@ -9,18 +10,16 @@ import { LeadFiltersBar } from '../components/LeadFiltersBar';
 import { LeadViewToggle } from '../components/LeadViewToggle';
 import { LeadsTable } from '../components/LeadsTable';
 import { LeadsKanban } from '../components/LeadsKanban';
-import { LeadDetailModal } from '../components/LeadDetailModal';
 import { useCurrentUser } from '@/store/currentUserStore';
 import {
   useLeads,
-  useLeadDetails,
   useLeadMetrics,
   useUpdateLeadStatus,
-  useDeleteLead,
 } from '../hooks/use-leads';
 import type { LeadFilters, LeadView, LeadStatus } from '../types/lead';
 
 export function LeadsListScreen() {
+  const router = useRouter();
   const { currentUser, isLoading: isLoadingUser } = useCurrentUser();
   const workspaceId = currentUser?.workspaces?.[0]?.id || null;
 
@@ -42,7 +41,6 @@ export function LeadsListScreen() {
     sortOrder: 'desc',
   });
   const [searchInput, setSearchInput] = useState<string>('');
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -78,12 +76,7 @@ export function LeadsListScreen() {
     workspaceId,
     '30d'
   );
-  const { data: selectedLeadData } = useLeadDetails(
-    workspaceId,
-    selectedLeadId
-  );
 
-  const deleteMutation = useDeleteLead();
   const updateStatusMutation = useUpdateLeadStatus();
 
   const leads = leadsData && leadsData.view === 'table' ? leadsData.leads : [];
@@ -92,22 +85,7 @@ export function LeadsListScreen() {
     leadsData && leadsData.view === 'kanban' ? leadsData.columns : [];
 
   const handleViewLead = (leadId: string) => {
-    setSelectedLeadId(leadId);
-  };
-
-  const handleEditLead = (leadId: string) => {
-    setSelectedLeadId(leadId);
-  };
-
-  const handleDeleteLead = async (leadId: string) => {
-    if (!confirm('Are you sure you want to delete this lead?')) return;
-    if (!workspaceId) return;
-
-    try {
-      await deleteMutation.mutateAsync({ workspaceId, leadId });
-    } catch (error) {
-      console.error('Failed to delete lead:', error);
-    }
+    router.push(`/leads/${leadId}`);
   };
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
@@ -259,8 +237,6 @@ export function LeadsListScreen() {
                     setPage(1);
                   }}
                   onViewLead={handleViewLead}
-                  onEditLead={handleEditLead}
-                  onDeleteLead={handleDeleteLead}
                 />
               </div>
             )}
@@ -276,16 +252,6 @@ export function LeadsListScreen() {
               </div>
             )}
           </>
-        )}
-
-        {/* Lead Detail Modal */}
-        {selectedLeadData && workspaceId && (
-          <LeadDetailModal
-            lead={selectedLeadData}
-            workspaceId={workspaceId}
-            open={!!selectedLeadId}
-            onOpenChange={(open) => !open && setSelectedLeadId(null)}
-          />
         )}
       </div>
     </DashboardLayout>

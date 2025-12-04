@@ -95,6 +95,14 @@ export const mainUrl = {
   exportLeads: (workspaceId: string) =>
     `/api/v1/workspaces/${workspaceId}/leads/export`,
 
+  // Enrichment endpoints
+  enrichLead: (workspaceId: string, leadId: string) =>
+    `/api/v1/workspaces/${workspaceId}/leads/${leadId}/enrich`,
+  getLeadEnrichment: (workspaceId: string, leadId: string) =>
+    `/api/v1/workspaces/${workspaceId}/leads/${leadId}/enrichment`,
+  bulkEnrichLeads: (workspaceId: string) =>
+    `/api/v1/workspaces/${workspaceId}/leads/enrich/bulk`,
+
   // Sent emails endpoints
   getWorkspaceEmails: (workspaceId: string) =>
     `/api/v1/sent-emails/workspaces/${workspaceId}`,
@@ -104,6 +112,12 @@ export const mainUrl = {
     `/api/v1/sent-emails/${emailId}/workspaces/${workspaceId}`,
   getEmailStatistics: (workspaceId: string) =>
     `/api/v1/sent-emails/workspaces/${workspaceId}/statistics`,
+
+  // Email Analytics (MPP-proof tracking) endpoints
+  getTrackingEvents: (sentEmailId: string) =>
+    `/api/v1/sent-emails/${sentEmailId}/tracking-events`,
+  getEmailStats: (workspaceId: string) =>
+    `/api/v1/workspaces/${workspaceId}/email-stats`,
 
   // Hotbox (Email Relay) endpoints
   getHotboxNeedsReply: (workspaceId: string) =>

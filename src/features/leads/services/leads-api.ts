@@ -97,3 +97,15 @@ export async function exportLeads(
   });
   return data;
 }
+
+export async function enrichLead(
+  workspaceId: string,
+  leadId: string
+): Promise<{ success: boolean; message: string; leadId: string }> {
+  const { data } = await request.post<{
+    success: boolean;
+    message: string;
+    leadId: string;
+  }>(mainUrl.enrichLead(workspaceId, leadId));
+  return data;
+}

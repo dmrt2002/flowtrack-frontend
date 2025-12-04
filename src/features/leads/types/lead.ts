@@ -14,6 +14,13 @@ export type LeadStatus =
   | 'LOST'
   | 'DISQUALIFIED';
 
+export type EnrichmentStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'SKIPPED';
+
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   NEW: 'New Lead',
   EMAIL_SENT: 'Email Sent',
@@ -51,6 +58,9 @@ export interface Lead {
   tags: string[];
   meetingEventId: string | null;
   meetingStatus: MeetingStatus | null;
+  enrichmentData: EnrichmentData | null;
+  enrichmentStatus: EnrichmentStatus | null;
+  enrichedAt: string | null;
   lastActivityAt: string | null;
   lastEmailSentAt: string | null;
   lastEmailOpenedAt: string | null;
@@ -213,4 +223,114 @@ export interface LeadDetailResponse extends Lead {
     name: string;
   };
   bookings?: Booking[];
+}
+
+// Enrichment data types
+export interface EnrichmentData {
+  enrichedAt: string;
+  enrichmentVersion: string;
+  company?: CompanyEnrichment;
+  person?: PersonEnrichment;
+  email?: EmailEnrichment;
+  intent?: IntentSignals;
+  rawData?: {
+    dns?: DnsRecords;
+    website?: WebsiteMetadata;
+    search?: SearchResults;
+  };
+}
+
+export interface CompanyEnrichment {
+  name: string;
+  domain: string;
+  logo?: string;
+  description?: string;
+  industry?: string;
+  size?: string;
+  location?: string;
+  headquarters?: string;
+  founded?: string;
+  website?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
+  techStack?: string[];
+  techStackDetailed?: TechStackDetails;
+  emailProvider?: string;
+}
+
+export interface TechStackDetails {
+  crm: string[];
+  analytics: string[];
+  marketing: string[];
+  chat: string[];
+  cms: string[];
+  ecommerce: string[];
+  cdn: string[];
+  hosting: string[];
+  payment: string[];
+  development: string[];
+  other: string[];
+}
+
+export interface PersonEnrichment {
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  jobTitle?: string;
+  seniority?: string;
+  department?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  githubUrl?: string;
+  photoUrl?: string;
+}
+
+export interface EmailEnrichment {
+  isValid: boolean;
+  isDeliverable: boolean;
+  isDisposable: boolean;
+  isCatchAll: boolean;
+  isRoleAccount: boolean;
+  provider: string;
+  smtpVerified: boolean;
+  mxRecords: string[];
+}
+
+export interface IntentSignals {
+  recentNews?: string[];
+  fundingRounds?: string[];
+  jobPostings?: number;
+  techChanges?: string[];
+  companyGrowth?: string;
+}
+
+export interface DnsRecords {
+  mx: MxRecord[];
+  txt: string[];
+  spf?: string;
+  dmarc?: string;
+  dkim?: string;
+}
+
+export interface MxRecord {
+  exchange: string;
+  priority: number;
+}
+
+export interface WebsiteMetadata {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  jsonLd?: any;
+  structuredData?: any;
+}
+
+export interface SearchResults {
+  companyInfo?: any;
+  linkedinProfile?: string;
+  newsArticles?: string[];
 }
